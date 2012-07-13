@@ -53,7 +53,11 @@ sealed trait Board {
       }
     })
 
-    PlayingBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
+    if (updatedBoard.filter(_._2.isInstanceOf[FallingRock]).exists(_._1.Down ==
+    ))
+      LostBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
+    else
+      PlayingBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
   }
 
   override def toString = {
