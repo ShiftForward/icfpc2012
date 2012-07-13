@@ -9,7 +9,7 @@ object ShortestPathCalculator {
         b: (Coordinate, Int)) = b._2 - a._2
     }
 
-  def possibleMoves = List(Up(), Down(), Left(), Right(), Wait())
+  def possibleMoves = List(MoveUp(), MoveDown(), MoveLeft(), MoveRight(), Wait())
 
   def shortestPath(s: Coordinate, e: Coordinate, sb: PlayingBoard): List[Opcode] = {
     val rb = sb.copy(robotPos = s)
