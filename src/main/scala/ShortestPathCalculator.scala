@@ -58,4 +58,7 @@ object ShortestPathCalculator {
       case None => List()
     }
   }
+
+  def shortestPath(e: Coordinate, b: PlayingBoard): List[Opcode] =
+    shortestPath(b.robotPos, e, b)
 }
