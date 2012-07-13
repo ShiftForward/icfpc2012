@@ -10,6 +10,7 @@ case class Wall() extends Tile with Unreachable
 case class Lambda() extends Tile with Reachable
 case class Earth() extends Tile with Reachable
 case class Empty() extends Tile with Reachable
+case class Invalid() extends Tile with Unreachable
 
 sealed trait Lift extends Tile
 case class OpenLift() extends Lift with Reachable
@@ -52,6 +53,7 @@ sealed trait Board {
   def robotPos: Coordinate
 
   def contains(pos: Coordinate) = pos.isInside(width, height)
+  def get(pos: Coordinate): Tile = tiles.get(pos).orElse(Invalid())
 }
 
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
