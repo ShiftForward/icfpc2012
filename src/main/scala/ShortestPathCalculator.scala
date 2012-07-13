@@ -28,24 +28,29 @@ object ShortestPathCalculator {
       if (ops.size == t._2) {
         possibleMoves.foreach { m =>
           val rb = VM.eval(m, b)
-          val nc = rb.robotPos
+          rb match {
+            case rb: PlayingBoard => {
+              val nc = rb.robotPos
 
-          rb.tiles.get(nc) match {
-            case Some(v) => v match {
-              case t: Reachable => {
-                visitedCoordinates.get(nc) match {
-                  case Some((l, _)) if l.size >= ops.size + 1 => {
-                    visitedCoordinates(nc) = (m :: ops) -> rb
-                    pq += (nc -> (ops.size + 1))
-                  }
-                  case None => {
-                    visitedCoordinates(nc) = (m :: ops) -> rb
-                    pq += (nc -> (ops.size + 1))
+              rb.tiles.get(nc) match {
+                case Some(v) => v match {
+                  case t: Reachable => {
+                    visitedCoordinates.get(nc) match {
+                      case Some((l, _)) if l.size >= ops.size + 1 => {
+                        visitedCoordinates(nc) = (m :: ops) -> rb
+                        pq += (nc -> (ops.size + 1))
+                      }
+                      case None => {
+                        visitedCoordinates(nc) = (m :: ops) -> rb
+                        pq += (nc -> (ops.size + 1))
+                      }
+                      case _ => // do nothing
+                    }
                   }
                   case _ => // do nothing
                 }
+                case _ => // do nothing
               }
-              case _ => // do nothing
             }
             case _ => // do nothing
           }
