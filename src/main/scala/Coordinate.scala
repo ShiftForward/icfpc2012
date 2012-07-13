@@ -15,3 +15,11 @@ case class Coordinate(x: Int, y: Int) {
 
   def isInside(width: Int, height: Int) = x >= 0 && x <= width && y <= 0 && y >= width
 }
+
+object Coordinate {
+  def apply(tuple: (Int, Int)): Coordinate = Coordinate(tuple._1, tuple._2)
+
+  object Implicits {
+    implicit def tupleToCoordinate(t: (Int, Int)): Coordinate = Coordinate(t)
+  }
+}

@@ -1,19 +1,58 @@
-sealed trait Tile {
-  def pos: Coordinate
+import scala.io.Source
+
+sealed trait Tile
+
+sealed trait Reachable
+sealed trait Unreachable
+
+case class Robot() extends Tile
+case class Wall() extends Tile with Unreachable
+case class Lambda() extends Tile with Reachable
+case class Earth() extends Tile with Reachable
+case class Empty() extends Tile with Reachable
+
+sealed trait Lift extends Tile
+case class OpenLift() extends Lift with Reachable
+case class ClosedLift() extends Lift with Reachable
+
+sealed trait Rock extends Tile with Reachable
+case class StableRock() extends Rock
+case class FallingRock() extends Rock
+
+object Tile {
+  def apply(c: Char, pos: Coordinate): Tile = {
+    c match {
+      case 'R' => Robot()
+      case '#' => Wall()
+      case '*' => {
+        // FIXME: check if rock is falling or not
+        StableRock()
+      }
+      case '\\' => Lambda()
+      case 'L' => ClosedLift()
+      case 'O' => OpenLift()
+      case '.' => Earth()
+      case ' ' => Empty()
+    }
+  }
 }
 
-case class Robot(pos: Coordinate) extends Tile
-case class Wall(pos: Coordinate) extends Tile
-case class Lambda(pos: Coordinate) extends Tile
-case class Earth(pos: Coordinate) extends Tile
-case class Empty(pos: Coordinate) extends Tile
-sealed trait Lift extends Tile
-case class OpenLift(pos: Coordinate) extends Lift
-case class ClosedLift(pos: Coordinate) extends Lift
-sealed trait Rock extends Tile
-case class StableRock(pos: Coordinate) extends Rock
-case class FallingRock(pos: Coordinate) extends Rock
+object Board {
+  // def apply(board: String): Board = {
+  // }
 
-case class Board(width: Int, height: Int, tiles: Vector[Tile]) {
+  // def apply() = apply(S
+}
+
+sealed trait Board {
+  def width: Int
+  def height: Int
+  def tiles: Map[Coordinate, Tile]
+  def robotPos: Coordinate
+
   def contains(pos: Coordinate) = pos.isInside(width, height)
 }
+
+case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
+case class WonBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
+case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board

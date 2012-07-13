@@ -8,21 +8,24 @@ case class Abort() extends Opcode
 
 object VM {
   def eval(o: Opcode, b: Board): Board = {
-    val tentativePos = (o match {
-      case Up    ⇒ b.robot.position.Up
-      case Down  ⇒ b.robot.position.Down
-      case Left  ⇒ b.robot.position.Left
-      case Right ⇒ b.robot.position.Right
-      case Wait  ⇒ b.robot.position
-    })
+    val tentativePos = o match {
+      case _: Up    => b.robotPos.Up
+      case _: Down  => b.robotPos.Down
+      case _: Left  => b.robotPos.Left
+      case _: Right => b.robotPos.Right
+      case _: Wait  => b.robotPos
+    }
 
     // Ugly non-functional code. If bot tries to move outside board, it remains in the same place.
-    val newPos = if (b.contains(tentativePos)) tentativePos else b.robot.position
+    val newPos = if (b.contains(tentativePos)) tentativePos else b.robotPos
 
-    b.copy(tiles = b.tiles map { _ match {
-      case e: Earth  if e.pos == newPos ⇒ Empty(newPos)
-      case l: Lambda if l.pos == newPos ⇒ Empty(newPos)
-      case w: Wall ⇒ w
-    } })
+    b.copy(tiles = b.tiles map { case (pos, tile) =>
+
+      tile match {
+        case e: Earth  if pos == newPos => (pos -> Empty())
+        case l: Lambda if pos == newPos => (pos -> Empty())
+        case w: Wall => (pos -> w)
+      }
+    })
   }
 }
