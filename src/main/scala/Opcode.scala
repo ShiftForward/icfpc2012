@@ -19,13 +19,12 @@ object VM {
     // Ugly non-functional code. If bot tries to move outside board, it remains in the same place.
     val newPos = if (b.contains(tentativePos)) tentativePos else b.robotPos
 
-    b.copy(tiles = b.tiles map { case (pos, tile) =>
-
+    PlayingBoard(b.width, b.height, b.tiles map { case (pos, tile) =>
       tile match {
         case e: Earth  if pos == newPos => (pos -> Empty())
         case l: Lambda if pos == newPos => (pos -> Empty())
         case w: Wall => (pos -> w)
       }
-    })
+    }, newPos)
   }
 }

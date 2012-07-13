@@ -44,6 +44,7 @@ object Board {
   // def apply() = apply(S
 }
 
+
 sealed trait Board {
   def width: Int
   def height: Int
