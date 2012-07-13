@@ -10,13 +10,13 @@ object Main extends App {
 
   // val b = Board("#*. #\n# R\\#\n#####".split('\n'))
   // val b = Board("#R  #\n#* *#\n#* *#\n#####".split('\n'))
-  val b = Board("#*#\n#*#\n# #\n# #\n#R#".split('\n'))
+  val b = Board("#L#\n#*#\n#*#\n# #\n# #\n#R#\n#\\#\n###".split('\n'))
   println (b)
 
-  val f = b.eval(Wait()).eval(Wait()).eval(Wait()).eval(Wait())
+  val f = b.eval(MoveDown()).eval(Wait())
 
   println (f)
-  println("Status is " + f.isInstanceOf[LostBoard])
+  println("Status is " + f.isInstanceOf[LostBoard] + " and you caught " + f.lambdas)
 
   // println ("You caught: " + f.lambdas)
 }

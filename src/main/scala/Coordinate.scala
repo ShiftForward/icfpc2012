@@ -13,7 +13,7 @@ case class Coordinate(x: Int, y: Int) {
   def Left  = this + Coordinate(-1,  0)
   def Right = this + Coordinate( 1,  0)
 
-  def isInside(width: Int, height: Int) = x >= 0 && x <= width && y >= 0 && y <= width
+  def isInside(width: Int, height: Int) = x >= 0 && x <= width && y >= 0 && y <= height
 }
 
 object Coordinate {
