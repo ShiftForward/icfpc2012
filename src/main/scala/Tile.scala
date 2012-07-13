@@ -1,5 +1,4 @@
 sealed trait Tile
-
 sealed trait Reachable
 sealed trait Unreachable
 

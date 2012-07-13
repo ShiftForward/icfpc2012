@@ -20,11 +20,11 @@ sealed trait Board {
     var lambdas = 0
 
     val tentativePos = o match {
-      case _: Up    => b.robotPos.Up
-      case _: Down  => b.robotPos.Down
-      case _: Left  => b.robotPos.Left
-      case _: Right => b.robotPos.Right
-      case _        => b.robotPos
+      case _: MoveUp    => b.robotPos.Up
+      case _: MoveDown  => b.robotPos.Down
+      case _: MoveLeft  => b.robotPos.Left
+      case _: MoveRight => b.robotPos.Right
+      case _            => b.robotPos
     }
 
     println ("Move from " + b.robotPos + " to " + tentativePos)
@@ -77,6 +77,8 @@ sealed trait Board {
 
     }.mkString("\n")
   }
+
+  def iterator = TreeMap(tiles.toArray: _*).iterator
 }
 
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board

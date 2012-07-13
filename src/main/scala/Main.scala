@@ -4,9 +4,12 @@
 // ****************************************************************
 
 object Main extends App {
-//  val b = Board("#*. #\n# R\\#\n#####".split('\n'))
-  val b = Board("#R  #\n#* *#\n#* *#\n#####".split('\n'))
+  scala.sys.addShutdownHook {
+    println("Received SIGINT! 10 more seconds to go.")
+  }
 
+  // val b = Board("#*. #\n# R\\#\n#####".split('\n'))
+  val b = Board("#R  #\n#* *#\n#* *#\n#####".split('\n'))
   val f = b.eval(Up()).eval(Down()).eval(Right()).eval(Left())
 
   println (f)
