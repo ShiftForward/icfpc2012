@@ -16,13 +16,16 @@ object VM {
       case _        => b.robotPos
     }
 
-    // Ugly non-functional code. If bot tries to move outside board, it remains in the same place.
-    val newPos = if (b.contains(tentativePos)) tentativePos else b.robotPos
+    println ("Move from " + b.robotPos + " to " + tentativePos)
 
-    val updatedBoardStep1 = b.tiles + (b.robotPos -> Empty()) ++ ((b.get(newPos) match {
-      case _: Empty | _: Earth | _: Robot => Map(newPos -> Robot(), b.robotPos -> Empty())
-      case otherwise => Map.empty[Coordinate, Tile]
-    }))
+    val newPos  = if (b.contains(tentativePos)) {
+      b.get(tentativePos) match {
+        case _: Empty | _: Earth => tentativePos
+        case otherwise           => b.robotPos
+      }
+    } else b.robotPos
+
+    val updatedBoardStep1 = b.tiles + (b.robotPos -> Empty()) + (newPos -> Robot())
 
     val updatedBoard = updatedBoardStep1 map { case (pos, tile) =>
       tile match {

@@ -4,12 +4,12 @@
 // ****************************************************************
 
 object Main extends App {
-  def cenas() {
-    println("We will, we will, rock you!!!")
-  }
+  val b = Board("#*. #\n# R #\n#####".split('\n'))
 
-  while(true) {
-    cenas()
-    Thread.sleep(1000)
-  }
+  val x0 = VM.eval(Right(), b)
+  val x1 = VM.eval(Right(), x0)
+  val x2 = VM.eval(Left(), x1)
+  val x3 = VM.eval(Left(), x2)
+
+  println (x3.toString)
 }
