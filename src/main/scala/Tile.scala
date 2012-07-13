@@ -1,5 +1,7 @@
 import scala.io.Source
 
+import Coordinate.Implicits._
+
 sealed trait Tile
 
 sealed trait Reachable
@@ -21,7 +23,7 @@ case class StableRock() extends Rock
 case class FallingRock() extends Rock
 
 object Tile {
-  def apply(c: Char, pos: Coordinate): Tile = {
+  def apply(c: Char): Tile = {
     c match {
       case 'R' => Robot()
       case '#' => Wall()
@@ -39,10 +41,27 @@ object Tile {
 }
 
 object Board {
-  // def apply(board: String): Board = {
-  // }
+  def apply(board: Seq[String]): Board = {
+    val width = board.head.length
+    val height = board.length
 
-  // def apply() = apply(S
+    val tiles = board.zipWithIndex.map { case (line, y) =>
+      line.zipWithIndex.map { case (char, x) =>
+        ((x, y): Coordinate, Tile(char))
+      }
+    }.flatten
+
+    val robotPos = tiles.find { case (_, tile) =>
+      tile match {
+        case _: Robot => true
+        case _ => false
+      }
+    }.map(_._1).get
+
+    new PlayingBoard(width, height, tiles.toMap, robotPos)
+  }
+
+  def apply(): Board = apply(Source.stdin.getLines.takeWhile(_ != "").toSeq)
 }
 
 
@@ -53,7 +72,11 @@ sealed trait Board {
   def robotPos: Coordinate
 
   def contains(pos: Coordinate) = pos.isInside(width, height)
-  def get(pos: Coordinate): Tile = tiles.get(pos).orElse(Invalid())
+  def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
+
+  def toString = {
+
+  }
 }
 
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
