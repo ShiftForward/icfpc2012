@@ -61,7 +61,7 @@ object Board {
     new PlayingBoard(width, height, tiles.toMap, robotPos)
   }
 
-  def apply(): Board = apply(Source.stdin.getLines.takeWhile(_ != "").toSeq)
+  def apply(): Board = apply(Source.stdin.getLines().takeWhile(_ != "").toSeq)
 }
 
 
@@ -74,9 +74,7 @@ sealed trait Board {
   def contains(pos: Coordinate) = pos.isInside(width, height)
   def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
 
-  def toString = {
-
-  }
+  override def toString = ""
 }
 
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
