@@ -48,8 +48,7 @@ case class WonBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robot
 case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board {
   override def eval(o: Opcode): Board = {
     var lambdas = 0
-
-    val existsLambdas = this.tiles.exists(_._2.isInstanceOf[Lambda])
+    val liftPos = this.tiles.find(_._2.isInstanceOf[Lift]).get._1
 
     val tentativePos = o match {
       case _: MoveUp    => robotPos.Up
@@ -67,14 +66,15 @@ case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], r
         case _: Lambda =>
           lambdas += 1
           tentativePos
+        case _: OpenLift =>
+          return WonBoard(width, height, this.tiles, tentativePos, this.lambdas)
         case _ => robotPos
       }
     } else robotPos
 
-    println ("Conclusion is " + newPos)
-
+    var existingLambdas = 0
     val robotMove = PlayingBoard(width, height, tiles + (robotPos -> Empty()) + (newPos -> Robot()), newPos, this.lambdas)
-    val updatedBoard = robotMove.empty ++ (sortedKeys collect { case pos if !robotMove.get(pos).isInstanceOf[Empty] =>
+    var updatedBoard = robotMove.empty ++ (sortedKeys collect { case pos if !robotMove.get(pos).isInstanceOf[Empty] =>
       robotMove.get(pos) match {
         case _: Rock => robotMove.get(pos.Down) match {
           case _: Empty => println("Pos = " + pos); (pos.Down -> FallingRock())
@@ -82,12 +82,14 @@ case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], r
           case _: Rock  if (robotMove.get(pos.Down.Left).isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
           case _        => (pos -> StableRock())
         }
-        case _: ClosedLift if !existsLambdas => (pos -> OpenLift())
+        case l: Lambda => existingLambdas += 1; (pos -> l)
         case w => (pos -> w)
       }
     })
 
-    if (updatedBoard.filter(_._2.isInstanceOf[FallingRock]).exists(_._1.Down == newPos))
+    updatedBoard += (liftPos -> (if (existingLambdas > 0) ClosedLift() else OpenLift()))
+
+    if (updatedBoard.get(newPos.Up).isInstanceOf[FallingRock])
       LostBoard(width, height, updatedBoard, newPos, this.lambdas + lambdas)
     else
       PlayingBoard(width, height, updatedBoard, newPos, this.lambdas + lambdas)
