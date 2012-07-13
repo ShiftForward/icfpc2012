@@ -50,7 +50,7 @@ object ShortestPathCalculator {
 
   def possibleMoves = List(MoveUp(), MoveDown(), MoveLeft(), MoveRight(), Wait())
 
-  def shortestPath(s: Coordinate, e: Coordinate, sb: PlayingBoard): List[Opcode] = {
+  def shortestPath(s: Coordinate, e: Coordinate, sb: Board): List[Opcode] = {
     val rb = sb.copy(robotPos = s)
     val visitedStates =
       MutableMap[String, (List[Opcode], Board)]()
@@ -67,7 +67,7 @@ object ShortestPathCalculator {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
           rb match {
-            case rb: PlayingBoard => {
+            case rb: Board => {
               visitedStates.get(rb) match {
                 case Some((l, _)) if l.size >= ops.size + 1 => {
                   visitedStates(rb) = (m :: ops) -> rb
@@ -95,6 +95,6 @@ object ShortestPathCalculator {
       }
   }
 
-  def shortestPath(e: Coordinate, b: PlayingBoard): List[Opcode] =
+  def shortestPath(e: Coordinate, b: Board): List[Opcode] =
     shortestPath(b.robotPos, e, b)
 }

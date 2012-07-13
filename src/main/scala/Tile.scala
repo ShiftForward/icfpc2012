@@ -10,7 +10,7 @@ case class Empty() extends Reachable
 case class Invalid() extends Tile
 
 sealed case class Lift() extends Tile
-case class OpenLift() extends Reachable
+case class OpenLift() extends Tile
 case class ClosedLift() extends Lift
 
 sealed case class Rock() extends Tile
