@@ -41,10 +41,10 @@ sealed trait Board {
 
     val updatedBoardStep1 = b.tiles + (b.robotPos -> Empty()) + (newPos -> Robot())
 
-    val updatedBoard = b.empty ++ (updatedBoardStep1 map { case (pos, tile) =>
+    val updatedBoard = b.empty ++ (updatedBoardStep1 collect { case (pos, tile) if !tile.isInstanceOf[Empty] =>
       tile match {
         case _: Rock => b.get(pos.Down) match {
-          case _: Empty => (pos.Down -> FallingRock())
+          case _: Empty => println("Pos = " + pos); (pos.Down -> FallingRock())
           case _: Rock  if (b.get(pos.Down.Right).isInstanceOf[Empty]) => (pos.Down.Right -> FallingRock())
           case _: Rock  if (b.get(pos.Down.Left).isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
           case _        => (pos -> StableRock())
@@ -53,8 +53,7 @@ sealed trait Board {
       }
     })
 
-    if (updatedBoard.filter(_._2.isInstanceOf[FallingRock]).exists(_._1.Down ==
-    ))
+    if (updatedBoard.filter(_._2.isInstanceOf[FallingRock]).exists(_._1.Down == newPos))
       LostBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
     else
       PlayingBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
