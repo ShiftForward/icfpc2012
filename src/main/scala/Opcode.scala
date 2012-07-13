@@ -8,6 +8,8 @@ case class Abort() extends Opcode
 
 object VM {
   def eval(o: Opcode, b: Board): Board = {
+    var lambdas = 0
+
     val tentativePos = o match {
       case _: Up    => b.robotPos.Up
       case _: Down  => b.robotPos.Down
@@ -18,10 +20,13 @@ object VM {
 
     println ("Move from " + b.robotPos + " to " + tentativePos)
 
-    val newPos  = if (b.contains(tentativePos)) {
+    val newPos = if (b.contains(tentativePos)) {
       b.get(tentativePos) match {
         case _: Empty | _: Earth => tentativePos
-        case otherwise           => b.robotPos
+        case _: Lambda =>
+          lambdas += 1
+          tentativePos
+        case _ => b.robotPos
       }
     } else b.robotPos
 
@@ -39,6 +44,6 @@ object VM {
       }
     })
 
-    PlayingBoard(b.width, b.height, updatedBoard, newPos)
+    PlayingBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
   }
 }

@@ -8,6 +8,7 @@ sealed trait Board {
   def height: Int
   def tiles: Map[Coordinate, Tile]
   def robotPos: Coordinate
+  def lambdas: Int
 
   def contains(pos: Coordinate) = pos.isInside(width, height)
   def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
@@ -37,9 +38,9 @@ sealed trait Board {
   }
 }
 
-case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
-case class WonBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
-case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board
+case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
+case class WonBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
+case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
 
 object Board {
   def apply(board: Seq[String]): Board = {
