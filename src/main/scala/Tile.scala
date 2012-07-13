@@ -15,5 +15,5 @@ case class StableRock(pos: Coordinate) extends Rock
 case class FallingRock(pos: Coordinate) extends Rock
 
 case class Board(width: Int, height: Int, tiles: Vector[Tile]) {
-
+  def contains(pos: Coordinate) = pos.isInside(width, height)
 }
