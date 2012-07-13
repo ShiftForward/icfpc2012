@@ -1,4 +1,5 @@
 import scala.io.Source
+import scala.collection.immutable.TreeMap
 
 import Coordinate.Implicits._
 
@@ -74,7 +75,27 @@ sealed trait Board {
   def contains(pos: Coordinate) = pos.isInside(width, height)
   def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
 
-  override def toString = ""
+  override def toString = {
+    val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
+    val sortedLines = TreeMap(lines.toArray: _*)
+
+    sortedLines.map { case (n, line) =>
+      line.map { case (_, tile) =>
+        tile match {
+          case _: Robot => 'R'
+          case _: Wall => '#'
+          case _: Lambda => '\\'
+          case _: Earth => '.'
+          case _: Empty => ' '
+          case _: ClosedLift => 'L'
+          case _: OpenLift => 'O'
+          case _: Rock => '*'
+          case _ => '?'
+        }
+      }.mkString
+
+    }.mkString("\n")
+  }
 }
 
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate) extends Board

@@ -21,5 +21,13 @@ object Coordinate {
 
   object Implicits {
     implicit def tupleToCoordinate(t: (Int, Int)): Coordinate = Coordinate(t)
+
+    implicit val coordinateOrdering = new Ordering[Coordinate] {
+      def compare(c1: Coordinate, c2: Coordinate) = {
+        if (c1.y > c2.y || c1.y == c2.y && c1.x > c2.x) 1
+        else if (c1.y < c2.y || c1.y == c2.y && c1.x < c2.x) -1
+        else 0
+      }
+    }
   }
 }
