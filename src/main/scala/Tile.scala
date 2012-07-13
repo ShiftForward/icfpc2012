@@ -1,33 +1,33 @@
-sealed trait Tile
-sealed trait Reachable
-sealed trait Unreachable
-
+sealed case class Tile()
 case class Robot() extends Tile
-case class Wall() extends Tile with Unreachable
-case class Lambda() extends Tile with Reachable
-case class Earth() extends Tile with Reachable
-case class Empty() extends Tile with Reachable
-case class Invalid() extends Tile with Unreachable
+case class DeadRobot() extends Robot()
+case class WinningRobot() extends Robot()
+case class Wall() extends Tile
+case class Lambda() extends Tile
+sealed case class Reachable() extends Tile
+case class Earth() extends Reachable
+case class Empty() extends Reachable
+case class Invalid() extends Tile
 
-sealed trait Lift extends Tile
-case class OpenLift() extends Lift with Reachable
-case class ClosedLift() extends Lift with Reachable
+sealed case class Lift() extends Tile
+case class OpenLift() extends Reachable
+case class ClosedLift() extends Lift
 
-sealed trait Rock extends Tile with Reachable
+sealed case class Rock() extends Tile
 case class StableRock() extends Rock
 case class FallingRock() extends Rock
 
 object Tile {
   def apply(c: Char): Tile = {
     c match {
-      case 'R' => Robot()
-      case '#' => Wall()
-      case '*' => StableRock()
+      case 'R'  => Robot()
+      case '#'  => Wall()
+      case '*'  => StableRock()
       case '\\' => Lambda()
-      case 'L' => ClosedLift()
-      case 'O' => OpenLift()
-      case '.' => Earth()
-      case ' ' => Empty()
+      case 'L'  => ClosedLift()
+      case 'O'  => OpenLift()
+      case '.'  => Earth()
+      case ' '  => Empty()
     }
   }
 }

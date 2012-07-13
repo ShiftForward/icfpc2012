@@ -1,3 +1,4 @@
+import akka.pattern.Patterns
 import scala.io.Source
 import scala.collection.immutable.TreeMap
 
@@ -43,60 +44,75 @@ sealed trait Board {
   def iterator = TreeMap(tiles.toArray: _*).iterator
 }
 
+case class Pattern(opCode: Opcode, source: Map[(Int, Int), Tile], dest: Map[(Int, Int), Tile]) {
+  def isMatch(b: Board, pos: Coordinate) =
+    source.forall(hp => hp._2.getClass.isAssignableFrom(b.get(pos + Coordinate(hp._1._1, hp._1._2)).getClass))
+
+  def replace(b: Board, pos: Coordinate): Map[Coordinate, Tile] =
+    dest.map(hp => ((pos + Coordinate(hp._1._1, hp._1._2))) -> hp._2)
+}
+
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
 case class WonBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
-case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board {
-  override def eval(o: Opcode): Board = {
-    var lambdas = 0
-    val liftPos = this.tiles.find(_._2.isInstanceOf[Lift]).get._1
 
-    val tentativePos = o match {
-      case _: MoveUp    => robotPos.Up
-      case _: MoveDown  => robotPos.Down
-      case _: MoveLeft  => robotPos.Left
-      case _: MoveRight => robotPos.Right
-      case _            => robotPos
+case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board {
+  def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern]): Board = {
+    val ts = b.sortedKeys flatMap { pos =>
+      patterns.filter(_.opCode.getClass.isAssignableFrom(opCode.getClass)) collect { case p if (p.isMatch(b, pos)) => p.replace(b, pos) }
     }
 
-    println ("Move from " + robotPos + " to " + tentativePos)
-
-    val newPos = if (this.contains(tentativePos)) {
-      this.get(tentativePos) match {
-        case _: Empty | _: Earth => tentativePos
-        case _: Lambda =>
-          lambdas += 1
-          tentativePos
-        case _: OpenLift =>
-          return WonBoard(width, height, this.tiles, tentativePos, this.lambdas)
-        case _ => robotPos
-      }
-    } else robotPos
-
-    var existingLambdas = 0
-    val robotMove = PlayingBoard(width, height, tiles + (robotPos -> Empty()) + (newPos -> Robot()), newPos, this.lambdas)
-    var updatedBoard = robotMove.empty ++ (sortedKeys collect { case pos if !robotMove.get(pos).isInstanceOf[Empty] =>
-      robotMove.get(pos) match {
-        case _: Rock => robotMove.get(pos.Down) match {
-          case _: Empty => println("Pos = " + pos); (pos.Down -> FallingRock())
-          case _: Rock  if (robotMove.get(pos.Down.Right).isInstanceOf[Empty]) => (pos.Down.Right -> FallingRock())
-          case _: Rock  if (robotMove.get(pos.Down.Left).isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
-          case _        => (pos -> StableRock())
-        }
-        case l: Lambda => existingLambdas += 1; (pos -> l)
-        case w => (pos -> w)
-      }
-    })
-
-    updatedBoard += (liftPos -> (if (existingLambdas > 0) ClosedLift() else OpenLift()))
-
-    if (updatedBoard.get(newPos.Up).isInstanceOf[FallingRock])
-      LostBoard(width, height, updatedBoard, newPos, this.lambdas + lambdas)
-    else
-      PlayingBoard(width, height, updatedBoard, newPos, this.lambdas + lambdas)
+    ts.foldLeft(b)((acc, t) => PlayingBoard(b.width, b.height, acc.tiles ++ t, b.robotPos, b.lambdas))
   }
+
+  override def eval(o: Opcode): Board = {
+    import Board._
+
+    val newBoardA = applyPatterns(this, o, List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft))
+    applyPatterns(newBoardA, o, List(Fall, FallRight, FallLeft, Die))
+ }
 }
 
 object Board {
+  val PushRight = Pattern(MoveRight(),
+                          Map((0, 0) -> Robot(), (1, 0) -> StableRock(), (2, 0) -> Empty()),
+                          Map((0, 0) -> Empty(), (1, 0) -> Robot(), (2, 0) -> StableRock()))
+
+  val PushLeft  = Pattern(MoveRight(),
+                          Map((0, 0) -> Empty(), (1, 0) -> StableRock(), (2, 0) -> Robot()),
+                          Map((0, 0) -> StableRock(), (1, 0) -> Robot(), (2, 0) -> Empty()))
+
+  val Fall      = Pattern(Opcode(),
+                          Map((0, 0) -> Rock(),  (0, 1) -> Empty()),
+                          Map((0, 0) -> Empty(), (0, 1) -> FallingRock()))
+
+  val FallRight = Pattern(Opcode(),
+                          Map((0, 0) -> Rock(),  (1, 0) -> Empty(), (0, 1) -> Rock(), (1, 1) -> Empty()),
+                          Map((0, 0) -> Empty(), (1, 0) -> Empty(), (0, 1) -> Rock(), (1, 1) -> FallingRock()))
+
+  val FallLeft  = Pattern(Opcode(),
+                          Map((0, 0) -> Empty(), (1, 0) -> Rock(), (0, 1) -> Empty(), (1, 1) -> Rock()),
+                          Map((0, 0) -> Empty(), (1, 0) -> Empty(), (0, 1) -> FallingRock(), (1, 1) -> Rock()))
+
+  val MvRight   = Pattern(MoveRight(),
+                          Map((0, 0) -> Robot(), (1, 0) -> Reachable()),
+                          Map((0, 0) -> Empty(), (1, 0) -> Robot()))
+
+  val MvLeft    = Pattern(MoveLeft(),
+                          Map((0, 0) -> Reachable(), (1, 0) -> Robot()),
+                          Map((0, 0) -> Robot(), (1, 0) -> Empty()))
+
+  val MvUp      = Pattern(MoveUp(),
+                          Map((0, 0) -> Reachable(), (0, 1) -> Robot()),
+                          Map((0, 0) -> Robot(), (0, 1) -> Empty()))
+
+  val MvDown    = Pattern(MoveDown(),
+                          Map((0, 0) -> Robot(), (0, 1) -> Reachable()),
+                          Map((0, 0) -> Empty(), (0, 1) -> Robot()))
+
+  val Die       = Pattern(MoveDown(),
+                          Map((0, 0) -> FallingRock(), (0, 1) -> Robot()),
+                          Map((0, 0) -> Empty(), (0, 1) -> DeadRobot()))
+
   def apply(board: Seq[String]): Board = {
     val width = board.head.length
     val height = board.length

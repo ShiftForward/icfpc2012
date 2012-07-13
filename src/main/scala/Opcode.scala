@@ -1,4 +1,4 @@
-sealed trait Opcode
+sealed case class Opcode()
 case class MoveUp() extends Opcode
 case class MoveDown() extends Opcode
 case class MoveLeft() extends Opcode
