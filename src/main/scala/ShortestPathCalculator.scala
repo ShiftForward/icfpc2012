@@ -1,13 +1,12 @@
-import scala.Tuple2
-import scala.collection.mutable.PriorityQueue
+import collection.mutable
 import scala.collection.mutable.{Map => MutableMap}
 
 object ShortestPathCalculator {
   implicit def ShortestPathOrdering =
-    new Ordering[Tuple2[Coordinate, Int]] {
+    new Ordering[(Coordinate, Int)] {
       def compare(
-        a: Tuple2[Coordinate, Int],
-        b: Tuple2[Coordinate, Int]) = b._2 - a._2
+        a: (Coordinate, Int),
+        b: (Coordinate, Int)) = b._2 - a._2
     }
 
   def possibleMoves = List(Up(), Down(), Left(), Right(), Wait())
@@ -15,19 +14,19 @@ object ShortestPathCalculator {
   def shortestPath(s: Coordinate, e: Coordinate, sb: PlayingBoard): List[Opcode] = {
     val rb = sb.copy(robotPos = s)
     val visitedCoordinates =
-      MutableMap[Coordinate, Tuple2[List[Opcode], Board]]()
-    val pq = PriorityQueue[Tuple2[Coordinate, Int]]()
+      MutableMap[Coordinate, (List[Opcode], Board)]()
+    val pq = mutable.PriorityQueue[(Coordinate, Int)]()
     pq += (s -> 0)
     visitedCoordinates(s) = (List() -> rb)
 
     while (!pq.isEmpty && pq.head != e) {
-      val t = pq.dequeue
+      val t = pq.dequeue()
       val c = t._1
       val (ops, b) = visitedCoordinates(c)
 
       if (ops.size == t._2) {
         possibleMoves.foreach { m =>
-          val rb = VM.eval(m, b)
+          val rb = b.eval(m)
           rb match {
             case rb: PlayingBoard => {
               val nc = rb.robotPos

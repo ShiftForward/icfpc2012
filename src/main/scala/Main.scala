@@ -5,12 +5,8 @@
 
 object Main extends App {
   val b = Board("#*. #\n# R\\#\n#####".split('\n'))
+  val f = b.eval(Up()).eval(Down()).eval(Right()).eval(Left())
 
-  val x0 = VM.eval(Up(), b)
-  val x1 = VM.eval(Down(), x0)
-  val x2 = VM.eval(Right(), x1)
-  val x3 = VM.eval(Left(), x2)
-
-  println (x3.toString)
-  println ("You caught: " + x3.lambdas)
+  println (f)
+  println ("You caught: " + f.lambdas)
 }
