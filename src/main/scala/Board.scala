@@ -14,50 +14,9 @@ sealed trait Board {
   def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
 
   lazy val empty = (for (i <- Range(0, width); j <- Range(0, height)) yield (Coordinate(i, j) -> Empty())).toMap[Coordinate, Tile]
+  lazy val sortedKeys = for (i <- Range(0, width); j <- Range(height-1, -1, -1)) yield Coordinate(i, j)
 
-  def eval(o: Opcode): Board = {
-    val b = this
-    var lambdas = 0
-
-    val tentativePos = o match {
-      case _: MoveUp    => b.robotPos.Up
-      case _: MoveDown  => b.robotPos.Down
-      case _: MoveLeft  => b.robotPos.Left
-      case _: MoveRight => b.robotPos.Right
-      case _            => b.robotPos
-    }
-
-    println ("Move from " + b.robotPos + " to " + tentativePos)
-
-    val newPos = if (b.contains(tentativePos)) {
-      b.get(tentativePos) match {
-        case _: Empty | _: Earth => tentativePos
-        case _: Lambda =>
-          lambdas += 1
-          tentativePos
-        case _ => b.robotPos
-      }
-    } else b.robotPos
-
-    val updatedBoardStep1 = b.tiles + (b.robotPos -> Empty()) + (newPos -> Robot())
-
-    val updatedBoard = b.empty ++ (updatedBoardStep1 collect { case (pos, tile) if !tile.isInstanceOf[Empty] =>
-      tile match {
-        case _: Rock => b.get(pos.Down) match {
-          case _: Empty => println("Pos = " + pos); (pos.Down -> FallingRock())
-          case _: Rock  if (b.get(pos.Down.Right).isInstanceOf[Empty]) => (pos.Down.Right -> FallingRock())
-          case _: Rock  if (b.get(pos.Down.Left).isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
-          case _        => (pos -> StableRock())
-        }
-        case _ => (pos -> tile)
-      }
-    })
-
-    if (updatedBoard.filter(_._2.isInstanceOf[FallingRock]).exists(_._1.Down == newPos))
-      LostBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
-    else
-      PlayingBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
-  }
+  def eval(o: Opcode): Board = this
 
   override def toString = {
     val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
@@ -86,7 +45,50 @@ sealed trait Board {
 
 case class LostBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
 case class WonBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
-case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board
+case class PlayingBoard(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0) extends Board {
+  override def eval(o: Opcode): Board = {
+      val b = this
+      var lambdas = 0
+
+      val tentativePos = o match {
+        case _: MoveUp    => b.robotPos.Up
+        case _: MoveDown  => b.robotPos.Down
+        case _: MoveLeft  => b.robotPos.Left
+        case _: MoveRight => b.robotPos.Right
+        case _            => b.robotPos
+      }
+
+      println ("Move from " + b.robotPos + " to " + tentativePos)
+
+      val newPos = if (b.contains(tentativePos)) {
+        b.get(tentativePos) match {
+          case _: Empty | _: Earth => tentativePos
+          case _: Lambda =>
+            lambdas += 1
+            tentativePos
+          case _ => b.robotPos
+        }
+      } else b.robotPos
+
+      val robotMove = PlayingBoard(b.width, b.height, b.tiles + (b.robotPos -> Empty()) + (newPos -> Robot()), newPos, b.lambdas)
+      val updatedBoard = b.empty ++ (sortedKeys collect { case pos if !robotMove.get(pos).isInstanceOf[Empty] =>
+        robotMove.get(pos) match {
+          case _: Rock => robotMove.get(pos.Down) match {
+            case _: Empty => println("Pos = " + pos); (pos.Down -> FallingRock())
+            case _: Rock  if (robotMove.get(pos.Down.Right).isInstanceOf[Empty]) => (pos.Down.Right -> FallingRock())
+            case _: Rock  if (robotMove.get(pos.Down.Left).isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
+            case _        => (pos -> StableRock())
+          }
+          case w => (pos -> w)
+        }
+      })
+
+      if (updatedBoard.filter(_._2.isInstanceOf[FallingRock]).exists(_._1.Down == newPos))
+        LostBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
+      else
+        PlayingBoard(b.width, b.height, updatedBoard, newPos, b.lambdas + lambdas)
+    }
+}
 
 object Board {
   def apply(board: Seq[String]): Board = {
