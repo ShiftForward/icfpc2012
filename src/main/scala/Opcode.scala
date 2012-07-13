@@ -27,17 +27,17 @@ object VM {
 
     val updatedBoardStep1 = b.tiles + (b.robotPos -> Empty()) + (newPos -> Robot())
 
-    val updatedBoard = updatedBoardStep1 map { case (pos, tile) =>
+    val updatedBoard = b.empty ++ (updatedBoardStep1 map { case (pos, tile) =>
       tile match {
-        case _: Rock => pos.Down match {
+        case _: Rock => b.get(pos.Down) match {
           case _: Empty => (pos.Down -> FallingRock())
-          case _: Rock  if (pos.Down.Right.isInstanceOf[Empty]) => (pos.Down.Right -> FallingRock())
-          case _: Rock  if (pos.Down.Left.isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
+          case _: Rock  if (b.get(pos.Down.Right).isInstanceOf[Empty]) => (pos.Down.Right -> FallingRock())
+          case _: Rock  if (b.get(pos.Down.Left).isInstanceOf[Empty])  => (pos.Down.Left  -> FallingRock())
           case _        => (pos -> StableRock())
         }
         case _ => (pos -> tile)
       }
-    }
+    })
 
     PlayingBoard(b.width, b.height, updatedBoard, newPos)
   }

@@ -12,6 +12,8 @@ sealed trait Board {
   def contains(pos: Coordinate) = pos.isInside(width, height)
   def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
 
+  lazy val empty = (for (i <- Range(0, width); j <- Range(0, height)) yield (Coordinate(i, j) -> Empty())).toMap[Coordinate, Tile]
+
   override def toString = {
     val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
     val sortedLines = TreeMap(lines.toArray: _*)
