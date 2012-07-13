@@ -1,4 +1,3 @@
-import akka.pattern.Patterns
 import scala.io.Source
 import scala.collection.immutable.TreeMap
 
@@ -12,34 +11,45 @@ case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int), Til
     dest.map(hp => ((pos + Coordinate(hp._1._1, hp._1._2))) -> hp._2)
 }
 
-case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, lambdas: Int = 0, status: Status = Playing(), tLambdas: Int = 0) {
+case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, water: Int = -1, flooding: Int = 0,
+                 waterProof: Int = 10, tick: Int = 0, lambdas: Int = 0, status: Status = Playing(), tLambdas: Int = 0, ticksUnderwater: Int = 0) {
+
   def contains(pos: Coordinate) = pos.isInside(width, height)
-    def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
+  def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse(Invalid())
+  def isUnderwater(pos: Coordinate, water: Int) = (height - pos.y - 1) <= water
+  def isUnderwater = (height - robotPos.y - 1) <= water
 
-    lazy val empty = (for (i <- Range(0, width); j <- Range(0, height)) yield (Coordinate(i, j) -> Empty())).toMap[Coordinate, Tile]
-    lazy val sortedKeys = for (i <- Range(0, width); j <- Range(height-1, -1, -1)) yield Coordinate(i, j)
+  lazy val empty = (for (i <- Range(0, width); j <- Range(0, height)) yield (Coordinate(i, j) -> Empty())).toMap[Coordinate, Tile]
+  lazy val sortedKeys = for (i <- Range(0, width); j <- Range(height-1, -1, -1)) yield Coordinate(i, j)
 
-    override def toString = {
-      val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
-      val sortedLines = TreeMap(lines.toArray: _*)
+  override def toString = {
+    val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
+    val sortedLines = TreeMap(lines.toArray: _*)
 
-      sortedLines.map { case (n, line) =>
-        line.map { case (_, tile) =>
-          tile match {
-            case _: Robot => 'R'
-            case _: Wall => '#'
-            case _: Lambda => '\\'
-            case _: Earth => '.'
-            case _: Empty => ' '
-            case _: ClosedLift => 'L'
-            case _: OpenLift => 'O'
-            case _: Rock => '*'
-            case _ => '?'
-          }
-        }.mkString
+    sortedLines.map { case (n, line) =>
+      line.map { case (_, tile) =>
+        tile match {
+          case _: Robot => 'R'
+          case _: Wall => '#'
+          case _: Lambda => '\\'
+          case _: Earth => '.'
+          case _: Empty => ' '
+          case _: ClosedLift => 'L'
+          case _: OpenLift => 'O'
+          case _: Rock => '*'
+          case _ => '?'
+        }
+      }.mkString
 
-      }.mkString("\n")
-    }
+    }.mkString("\n")
+  }
+
+  def printStatus() {
+    println("-----------")
+    println(this.toString)
+    println("["+tick+"] Caught " + lambdas + "/" + tLambdas + " lambdas, diving " + isUnderwater + " (" + water + ") for ("+ticksUnderwater+"), hence you('re) " + status)
+    println("-----------")
+  }
 
   def iterator = TreeMap(tiles.toArray: _*).iterator
 
@@ -57,7 +67,15 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
     val newBoardA = applyPatterns(this, o, List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat))
     val newBoardB = applyPatterns(newBoardA, o, List(Fall, FallRight, FallLeft, FallRightR, openGate))
-    applyPatterns(newBoardB, o, List(Die))
+    val newBoardC = applyPatterns(newBoardB, o, List(Die))
+
+    val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
+    val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
+
+    newBoardC.copy(tick = newBoardC.tick + 1,
+                   water = newWater,
+                   ticksUnderwater = newTicksUnderwater,
+                   status = if (newTicksUnderwater > newBoardC.waterProof) Lost() else newBoardC.status)
   }
 }
 
@@ -144,9 +162,13 @@ object Board {
                           Map((0, 0) -> Robot(), (0, 1) -> Lambda()),
                           Map((0, 0) -> Empty(), (0, 1) -> Robot()), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(0, 1)) } )
 
-  def apply(board: Seq[String]): Board = {
+  type Metadata = (Int, Int, Int)
+
+  def create(board: Seq[String], metadata: Metadata = (-1, 0, 10)): Board = {
     val width = board.head.length
     val height = board.length
+
+    val (water, flooding, waterproof) = metadata
 
     val tiles = board.zipWithIndex.map { case (line, y) =>
       line.zipWithIndex.map { case (char, x) =>
@@ -161,8 +183,13 @@ object Board {
       }
     }.map(_._1).get
 
-    new Board(width, height, tiles.toMap, robotPos, tLambdas = tiles.count { case (_, x) ⇒ x.isInstanceOf[Lambda] } )
+    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { case (_, x) ⇒ x.isInstanceOf[Lambda] })
   }
 
-  def apply(): Board = apply(Source.stdin.getLines().takeWhile(_ != "").toSeq)
+  def apply(): Board = {
+    val board = create(Source.stdin.getLines().takeWhile(_ != "").toSeq)
+    val metadata = Source.stdin.getLines().takeWhile(_ != "")
+
+    board
+  }
 }

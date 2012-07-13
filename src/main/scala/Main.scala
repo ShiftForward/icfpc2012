@@ -14,20 +14,14 @@ object Main extends App {
   // val b = Board("#L#\n#*#\n#*#\n# #\n# #\n#R#\n#\\#\n###".split('\n'))
   // val b = Board("# #\n#L#\n#\\#\n#R#\n###".split('\n'))
 
-  // val b = Board("#R #\n# *#\n# *#".split('\n'))
+  val b = Board.create("#  #\n#  #\n#  #\n#R #\n# *#\n# *#".split('\n'), (-1, 2, 1))
 
-  val b = Board("#RL#\n#* #\n#\\ #\n#  #\n#  #".split('\n'))
+  // val b = Board("#RL#\n#* #\n#\\ #\n#  #\n#  #".split('\n'))
 
-  println(b)
-  println(b.robotPos)
-  println("--- AFTER ----")
+  b.printStatus()
 
-  val f = b.eval(Wait()).eval(MoveDown()).eval(MoveDown()).eval(MoveUp()).eval(MoveUp()).eval(MoveRight())
+  val moves = List(Wait(), MoveDown(), MoveDown(), Wait(), MoveUp(), MoveUp(), MoveRight(), MoveUp(), MoveUp(), MoveUp())
+  // val moves = List(MoveDown(), MoveDown(), MoveDown(), Wait(), Wait(), Wait(), Wait(), Wait(), Wait(), Wait())
 
-  println(f)
-  println(f.robotPos)
-  println("Status is " + f.getClass.toString + " and you caught " + f.lambdas + " lambdas of " + f.tLambdas + " lambdas hence you('re) " + f.status)
-
-
-  // println ("You caught: " + f.lambdas)
+  moves.foldLeft(b) { (cb: Board, m: Opcode) => val r = cb.eval(m); r.printStatus(); r }
 }
