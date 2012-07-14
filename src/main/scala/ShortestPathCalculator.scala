@@ -3,6 +3,7 @@ import scala.collection.immutable.TreeMap
 import scala.collection.mutable.{Map => MutableMap}
 import java.security.MessageDigest
 import Coordinate.Implicits._
+import Opcode._
 
 object ShortestPathCalculator {
   private lazy val messageDigest = MessageDigest.getInstance("MD5")
@@ -20,7 +21,7 @@ object ShortestPathCalculator {
         b: (Coordinate, Int)) = b._2 - a._2
     }
 
-  private def possibleMoves = List(MoveUp(), MoveDown(), MoveLeft(), MoveRight(), Wait())
+  val possibleMoves = List('MoveUp, 'MoveDown, 'MoveLeft, 'MoveRight, 'Wait)
 
   def shortestPath(s: Coordinate, e: Coordinate, sb: Board): List[Opcode] = {
     val rb = sb.copy(robotPos = s)

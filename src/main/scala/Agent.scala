@@ -1,4 +1,6 @@
 object Agent {
+  import Opcode._
+
   def orderedDestinations(c: Coordinate, destinations: List[Coordinate]) = {
     destinations.sortBy { coordinate => coordinate.distance(c) }
   }

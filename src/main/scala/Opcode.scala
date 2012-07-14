@@ -1,21 +1,16 @@
-sealed case class Opcode()
-case class MoveUp() extends Opcode {
-  override def toString = "U"
-}
-case class MoveDown() extends Opcode {
-  override def toString = "D"
-}
-case class MoveLeft() extends Opcode {
-  override def toString = "L"
-}
-case class MoveRight() extends Opcode {
-  override def toString = "R"
-}
-case class Wait() extends Opcode {
-  override def toString = "W"
-}
-case class Abort() extends Opcode {
-  override def toString = "A"
+object Opcode {
+  type Opcode = Symbol
+  def <~~(a: Opcode, b: Opcode): Boolean = (b == 'Opcode) || (a == b)
+  def toString(moves: List[Opcode]) = (moves map {
+    _ match {
+      case 'MoveLeft => "L"
+      case 'MoveRight => "R"
+      case 'MoveUp => "U"
+      case 'MoveDown => "D"
+      case 'Wait => "W"
+      case 'Abort => "A"
+    }
+  }).mkString
 }
 
 sealed trait Status
