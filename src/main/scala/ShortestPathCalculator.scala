@@ -28,9 +28,9 @@ object ShortestPathCalculator {
       MutableMap[String, (List[Opcode], Board)]()
     val nodeDistances = MutableMap[String, Int]()
     val pq = mutable.PriorityQueue[(String, Int)]()
-    pq += ((sb, s.distance(e).toInt))
+    pq += ((sb, s.manhattanDistance(e)))
     visitedStates(sb) = (List() -> rb)
-    nodeDistances(sb) = s.distance(e).toInt
+    nodeDistances(sb) = s.manhattanDistance(e)
 
     while (!pq.isEmpty && visitedStates(pq.head._1)._2.robotPos != e) {
       val t = pq.dequeue()
@@ -41,7 +41,7 @@ object ShortestPathCalculator {
       if (dd == t._2) {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
-          val cd = ops.size + 1 + rb.robotPos.distance(e).toInt
+          val cd = ops.size + 1 + rb.robotPos.manhattanDistance(e)
 
           rb match {
             case rb: Board if rb.status == Playing() | rb.status == Win() => {

@@ -6,6 +6,8 @@ case class Coordinate(x: Int, y: Int) {
   def *(factor: Double)   = Coordinate((x * factor).toInt, (y * factor).toInt)
 
   def distance(that: Coordinate) = (this-that).length
+  def manhattanDistance(that: Coordinate) = math.abs(this.x - that.x) +
+                                            math.abs(this.y - that.y)
   def length = math.sqrt(x * x + y * y)
 
   def Up    = this + Coordinate( 0, -1)
