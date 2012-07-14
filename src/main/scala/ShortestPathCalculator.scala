@@ -10,35 +10,6 @@ object ShortestPathCalculator {
 
   implicit private def encodeBoard(b: Board): String = {
     b.robotPos.toString
-
-/*    val lines = TreeMap(b.tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
-    val sortedLines = TreeMap(lines.toArray: _*)
-
-    val bs = sortedLines.map { case (n, line) =>
-      line.map { case (_, tile) =>
-        tile match {
-          case _: Robot => 'R'
-          case _: Wall => '#'
-          case _: Lambda => ' '
-          case _: Earth => ' '
-          case _: Empty => ' '
-          case _: ClosedLift => ' '
-          case _: OpenLift => ' '
-          case _: Rock => '#'
-          case _ => ' '
-        }
-      }.mkString
-
-    }.mkString("\n")
-
-    mapEncodings.get(bs) match {
-      case Some(s) => s
-      case None => {
-        val e = messageDigest.digest(bs.getBytes).map("%02x".format(_)).mkString
-        mapEncodings(bs) = e
-        e
-      }
-    }*/
   }
 
   implicit def ShortestPathOrdering =
