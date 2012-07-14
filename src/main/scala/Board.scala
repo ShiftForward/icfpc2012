@@ -58,32 +58,26 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
         case 'Lambda => coordinate :: list
         case _ => list
       }
-    }.sortBy { coordinate => coordinate.distance(robotPos) }
+    }.sortBy { _.distance(robotPos) }
   }
 
-  def liftPosition = {
-    tiles.find { case (_, tile) =>
-      tile match {
-        case 'OpenLift => true
-        case _ => false
-      }
-    }.map(_._1).get
-  }
+  def liftPosition = tiles.find { case (_, 'OpenLift) => true; case _ => false }.map(_._1).get
 
   def getClosest(c: Coordinate, t: Tile, l: Int = 20): List[Coordinate] = {
     val coordinates = for (i <- (-l/2 to l/2); j <- (-l/2 to l/2)) yield Coordinate(i, j)
 
     coordinates.foldLeft(List[Coordinate]()) { (l, cc) =>
       val currentC = c + cc
-      if (<~(get(currentC), t)) (currentC :: l) else l
+      if (<~(get(currentC), t)) currentC :: l else l
     }
   }
 
   def getClosest(t: Tile): List[Coordinate] = getClosest(robotPos, t)
 
   def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern]): Board = {
+    val ps = patterns.filter(_.pred(b, opCode))
     val ts = b.sortedKeys flatMap { pos =>
-      patterns.filter(_.pred(b, opCode)) collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) }
+       ps collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) }
     }
 
     val newBoard = ts.foldLeft(b)((acc, t) => b.copy(tiles = acc.tiles ++ t._1))
@@ -112,7 +106,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 }
 
 object Board {
-  def OpcodePred(o: Opcode) = (_: Board, opCode: Opcode) => <~~(opCode, o)
+  @inline def OpcodePred(o: Opcode) = (_: Board, opCode: Opcode) => <~~(opCode, o)
 
   val openGate  = Pattern( { (b, _) => b.tLambdas == b.lambdas },
                           Map((0, 0) -> 'ClosedLift),
