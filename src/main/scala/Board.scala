@@ -165,13 +165,15 @@ object Board {
   type Metadata = (Int, Int, Int)
 
   def create(board: Seq[String], metadata: Metadata = (-1, 0, 10)): Board = {
-    val width = board.head.length
+    val width = board.maxBy(_.length).length
     val height = board.length
 
     val (water, flooding, waterproof) = metadata
 
     val tiles = board.zipWithIndex.map { case (line, y) =>
-      line.zipWithIndex.map { case (char, x) =>
+      val paddedLine = line.padTo[Char, String](width, ' ')
+
+      paddedLine.zipWithIndex.map { case (char, x) =>
         ((x, y): Coordinate, Tile(char))
       }
     }.flatten
@@ -183,13 +185,23 @@ object Board {
       }
     }.map(_._1).get
 
-    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { case (_, x) ⇒ x.isInstanceOf[Lambda] })
+    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { case (_, x) => x.isInstanceOf[Lambda] })
   }
 
   def apply(): Board = {
-    val board = create(Source.stdin.getLines().takeWhile(_ != "").toSeq)
-    val metadata = Source.stdin.getLines().takeWhile(_ != "")
+    val MetadataRegex = """Water (\d+)Flooding (\d+)Waterproof (\d+)""".r
 
-    board
+    val input = Source.stdin.getLines().toSeq
+
+    try {
+      val (board, metadata) = input.splitAt(input.length - 3)
+
+      val MetadataRegex(water, flooding, waterproof) = metadata.mkString
+
+      create(board, (water.toInt - 1, flooding.toInt, waterproof.toInt))
+
+    } catch {
+      case e: MatchError => create(input)
+    }
   }
 }
