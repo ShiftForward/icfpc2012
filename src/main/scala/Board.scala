@@ -60,6 +60,15 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     }.sortBy { coordinate => coordinate.distance(robotPos) }
   }
 
+  def liftPosition = {
+    tiles.find { case (_, tile) =>
+      tile match {
+        case _: OpenLift => true
+        case _ => false
+      }
+    }.map(_._1).get
+  }
+
   def getClosest(c: Coordinate, t: Tile, l: Int = 20): List[Coordinate] = {
     val coordinates = for (i <- (-l/2 to l/2); j <- (-l/2 to l/2)) yield Coordinate(i, j)
 
@@ -83,6 +92,10 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
     val newBoard = ts.foldLeft(b)((acc, t) => b.copy(tiles = acc.tiles ++ t._1))
     ts.foldLeft(newBoard)((acc, t) => t._2(acc))
+  }
+
+  def eval(lo: List[Opcode]): Board = {
+    lo.foldLeft(this) { (b, o) => b.eval(o) }
   }
 
   def eval(o: Opcode): Board = {

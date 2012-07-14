@@ -44,7 +44,7 @@ object ShortestPathCalculator {
           val cd = ops.size + 1 + rb.robotPos.distance(e).toInt
 
           rb match {
-            case rb: Board if rb.status == Playing() => {
+            case rb: Board if rb.status == Playing() | rb.status == Win() => {
               nodeDistances.get(rb) match {
                 case Some(d) if d >= cd => {
                   visitedStates(rb) = (m :: ops) -> rb
