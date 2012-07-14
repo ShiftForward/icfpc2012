@@ -128,18 +128,18 @@ object Board {
 
   val MvRightWin = Pattern(OpcodePred(MoveRight()),
                           Map((0, 0) -> Robot(), (1, 0) -> OpenLift()),
-                          Map((0, 0) -> Empty(), (1, 0) -> WinningRobot()), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0), status = Win()) } )
+                          Map((0, 0) -> Empty(), (1, 0) -> Robot()), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0), status = Win()) } )
 
   val MvLeftWin  = Pattern(OpcodePred(MoveLeft()),
-                          Map((0, 0) -> OpenLift(), (1, 0) -> WinningRobot()),
+                          Map((0, 0) -> OpenLift(), (1, 0) -> Robot()),
                           Map((0, 0) -> Robot(), (1, 0) -> Empty()), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0), status = Win()) } )
 
   val MvUpWin      = Pattern(OpcodePred(MoveUp()),
-                          Map((0, 0) -> OpenLift(), (0, 1) -> WinningRobot()),
+                          Map((0, 0) -> OpenLift(), (0, 1) -> Robot()),
                           Map((0, 0) -> Robot(), (0, 1) -> Empty()), { s => s.copy(robotPos = s.robotPos + Coordinate(0, -1), status = Win()) } )
 
   val MvDownWin    = Pattern(OpcodePred(MoveDown()),
-                          Map((0, 0) -> WinningRobot(), (0, 1) -> OpenLift()),
+                          Map((0, 0) -> Robot(), (0, 1) -> OpenLift()),
                           Map((0, 0) -> Empty(), (0, 1) -> Robot()), { s => s.copy(robotPos = s.robotPos + Coordinate(0, 1), status = Win()) } )
 
   val Die       = Pattern(OpcodePred(MoveDown()),
