@@ -9,9 +9,9 @@ object ShortestPathCalculator {
   private lazy val mapEncodings = MutableMap[String, String]()
 
   implicit private def encodeBoard(b: Board): String = {
-//    val bs = b.robotPos.toString
+    b.robotPos.toString
 
-    val lines = TreeMap(b.tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
+/*    val lines = TreeMap(b.tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
     val sortedLines = TreeMap(lines.toArray: _*)
 
     val bs = sortedLines.map { case (n, line) =>
@@ -38,7 +38,7 @@ object ShortestPathCalculator {
         mapEncodings(bs) = e
         e
       }
-    }
+    }*/
   }
 
   implicit def ShortestPathOrdering =
@@ -67,7 +67,7 @@ object ShortestPathCalculator {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
           rb match {
-            case rb: Board => {
+            case rb: Board if rb.status == Playing() => {
               visitedStates.get(rb) match {
                 case Some((l, _)) if l.size >= ops.size + 1 => {
                   visitedStates(rb) = (m :: ops) -> rb
