@@ -188,10 +188,18 @@ object Board {
     new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { case (_, x) => x.isInstanceOf[Lambda] })
   }
 
-  def apply(): Board = {
-    val MetadataRegex = """Water (\d+)Flooding (\d+)Waterproof (\d+)""".r
+  def apply(filename: String): Board = {
+    val input = Source.fromFile(filename).getLines().toSeq
+    parse(input)
+  }
 
+  def apply(): Board = {
     val input = Source.stdin.getLines().toSeq
+    parse(input)
+  }
+
+  private def parse(input: Seq[String]): Board = {
+    val MetadataRegex = """Water (\d+)Flooding (\d+)Waterproof (\d+)""".r
 
     try {
       val (board, metadata) = input.splitAt(input.length - 3)
