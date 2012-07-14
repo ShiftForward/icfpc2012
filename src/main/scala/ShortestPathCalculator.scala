@@ -10,26 +10,6 @@ object ShortestPathCalculator {
 
   implicit private def encodeBoard(b: Board): String = {
     b.robotPos.toString
-
-    /*val lines = TreeMap(b.tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
-    val sortedLines = TreeMap(lines.toArray: _*)
-    val bs = sortedLines.map { case (n, line) =>
-      line.map { case (_, tile) =>
-        tile match {
-          case _: Robot => 'R'
-          case _: Wall => '#'
-          case _: Lambda => ' '
-          case _: Earth => ' '
-          case _: Empty => ' '
-          case _: ClosedLift => ' '
-          case _: OpenLift => ' '
-          case _: Rock => '#'
-          case _ => ' '
-        }
-      }.mkString
-    }.mkString("\n")
-
-    bs*/
   }
 
   private implicit def ShortestPathOrdering =
@@ -44,9 +24,7 @@ object ShortestPathCalculator {
   def shortestPath(
       s: Coordinate,
       e: Coordinate,
-      sb: Board,
-      distanceThreshold: ((Int, Coordinate, Coordinate) => Boolean) =
-        {(_, _, _) => false }): List[Opcode] = {
+      sb: Board): List[Opcode] = {
     val rb = sb.copy(robotPos = s)
     val visitedStates =
       MutableMap[String, (List[Opcode], Board)]()
@@ -62,9 +40,7 @@ object ShortestPathCalculator {
       val (ops, b) = visitedStates(c)
       val dd = nodeDistances(c)
 
-      if (distanceThreshold(ops.size, s, e)) {
-        pq.clear
-      } else if (dd == t._2) {
+      if (dd == t._2) {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
           val cd = ops.size + 1 + rb.robotPos.manhattanDistance(e)
