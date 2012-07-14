@@ -51,6 +51,20 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     println("-----------")
   }
 
+  def getClosest(c: Coordinate, t: Tile, l: Int = 20): List[Coordinate] = {
+    val coordinates = for (i <- (-l/2 to l/2); j <- (-l/2 to l/2)) yield Coordinate(i, j)
+
+    coordinates.foldLeft(List[Coordinate]()) { (l, cc) =>
+      val currentC = c + cc
+      get(currentC) match {
+        case tile: Tile if t.getClass.isAssignableFrom(tile.getClass) => (currentC :: l)
+        case _ => l
+      }
+    }
+  }
+
+  def getClosest(t: Tile): List[Coordinate] = getClosest(robotPos, t)
+
   def iterator = TreeMap(tiles.toArray: _*).iterator
 
   def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern]): Board = {
