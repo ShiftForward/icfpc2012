@@ -1,7 +1,5 @@
 sealed case class Tile()
 case class Robot() extends Tile
-case class DeadRobot() extends Robot()
-case class WinningRobot() extends Robot()
 case class Wall() extends Tile
 case class Lambda() extends Tile
 sealed case class Reachable() extends Tile

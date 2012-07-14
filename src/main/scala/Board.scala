@@ -144,7 +144,7 @@ object Board {
 
   val Die       = Pattern(OpcodePred(MoveDown()),
                           Map((0, 0) -> FallingRock(), (0, 1) -> Robot()),
-                          Map((0, 0) -> Empty(), (0, 1) -> DeadRobot()), { s => s.copy(status = Lost()) })
+                          Map((0, 0) -> Empty(), (0, 1) -> Robot()), { s => s.copy(status = Lost()) })
 
   val MvRightEat = Pattern(OpcodePred(MoveRight()),
                           Map((0, 0) -> Robot(), (1, 0) -> Lambda()),
