@@ -1,12 +1,12 @@
 import scala.io.Source
-import collection.immutable.{HashMap, TreeMap}
+import collection.immutable.{TreeMap}
 import Tile._
 import Opcode._
 import Coordinate.Implicits._
 
 final case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int), Tile], dest: Map[(Int, Int), Tile], f: (Board => Board) = identity) {
   def isMatch(b: Board, pos: Coordinate) =
-    source.forall(hp => <~(b.get(Coordinate(hp._1._1 + pos.x, hp._1._2 + pos.y)), hp._2))
+    source forall { case ((x, y), t) => <~(b.get(Coordinate(x + pos.x, y + pos.y)), t) }
 
   def replace(b: Board, pos: Coordinate): Map[Coordinate, Tile] =
     dest.map(hp => Coordinate(hp._1._1 + pos.x, hp._1._2 + pos.y) -> hp._2)
@@ -32,7 +32,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
           case 'Empty => ' '
           case 'ClosedLift => 'L'
           case 'OpenLift => 'O'
-          case 'Rock | 'FallingRock | 'StableRock => '*'
+          case 'Rock | 'FallingRock => '*'
           case _ => '?'
         }
       }.mkString
@@ -70,9 +70,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
   def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern], keys: IndexedSeq[Coordinate]): Board = {
     val ps = patterns.filter(_.pred(b, opCode))
-    val ts = keys filterNot { pos => val o = b.get(pos); o == 'Empty || o == 'Lambda || o == 'Earth || o == 'Wall } flatMap { pos =>
-       ps collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) }
-    }
+    val ts = keys flatMap { pos => ps collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) } }
 
     val newBoard = b.copy(tiles = ts.foldLeft(b.tiles)((acc, t) => acc ++ t._1))
     ts.foldLeft(newBoard)((acc, t) => t._2(acc))
@@ -86,9 +84,10 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     import Board._
 
     val keys = Board.sortedKeys(this.width, this.height)
-    val newBoardA = applyPatterns(this, o, tier1, keys)
-    val newBoardB = applyPatterns(newBoardA, o, tier2, keys)
-    val newBoardC = applyPatterns(newBoardB, o, tier3, keys)
+
+    val newBoardA = applyPatterns(this,      o, tier1, keys filter { pos => this.get(pos) == 'Robot })
+    val newBoardB = applyPatterns(newBoardA, o, tier2, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift})
+    val newBoardC = applyPatterns(newBoardB, o, tier3, keys filter { pos => newBoardB.get(pos) == 'Robot })
 
     val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
     val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
@@ -114,12 +113,12 @@ object Board {
                           Map((0, 0) -> 'OpenLift))
 
   val PushRight = Pattern(OpcodePred('MoveRight),
-                          Map((0, 0) -> 'Robot, (1, 0) -> 'StableRock, (2, 0) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'Robot, (2, 0) -> 'StableRock), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
+                          Map((0, 0) -> 'Robot, (1, 0) -> 'Rock, (2, 0) -> 'Empty),
+                          Map((0, 0) -> 'Empty, (1, 0) -> 'Robot, (2, 0) -> 'Rock), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
 
   val PushLeft  = Pattern(OpcodePred('MoveLeft),
-                          Map((-2, 0) -> 'Empty, (-1, 0) -> 'StableRock, (0, 0) -> 'Robot),
-                          Map((-2, 0) -> 'StableRock, (-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
+                          Map((-2, 0) -> 'Empty, (-1, 0) -> 'Rock, (0, 0) -> 'Robot),
+                          Map((-2, 0) -> 'Rock, (-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
 
   val Fall      = Pattern((_, _) => true,
                           Map((0, 0) -> 'Rock,  (0, 1) -> 'Empty),

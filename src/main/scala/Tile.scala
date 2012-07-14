@@ -13,7 +13,7 @@ object Tile {
     c match {
       case 'R'  => 'Robot
       case '#'  => 'Wall
-      case '*'  => 'StableRock
+      case '*'  => 'Rock
       case '\\' => 'Lambda
       case 'L'  => 'ClosedLift
       case 'O'  => 'OpenLift
