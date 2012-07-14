@@ -7,46 +7,54 @@ import Coordinate.Implicits._
 object ShortestPathCalculator {
   private lazy val messageDigest = MessageDigest.getInstance("MD5")
   private lazy val mapEncodings = MutableMap[String, String]()
+  private lazy val pathCaches = MutableMap[Coordinate, Map[Coordinate, List[Opcode]]]()
 
   implicit private def encodeBoard(b: Board): String = {
     b.robotPos.toString
   }
 
-  implicit def ShortestPathOrdering =
+  private implicit def ShortestPathOrdering =
     new Ordering[(Coordinate, Int)] {
       def compare(
         a: (Coordinate, Int),
         b: (Coordinate, Int)) = b._2 - a._2
     }
 
-  def possibleMoves = List(MoveUp(), MoveDown(), MoveLeft(), MoveRight(), Wait())
+  private def possibleMoves = List(MoveUp(), MoveDown(), MoveLeft(), MoveRight(), Wait())
 
   def shortestPath(s: Coordinate, e: Coordinate, sb: Board): List[Opcode] = {
     val rb = sb.copy(robotPos = s)
     val visitedStates =
       MutableMap[String, (List[Opcode], Board)]()
+    val nodeDistances = MutableMap[String, Int]()
     val pq = mutable.PriorityQueue[(String, Int)]()
-    pq += ((sb, 0))
+    pq += ((sb, s.distance(e).toInt))
     visitedStates(sb) = (List() -> rb)
+    nodeDistances(sb) = s.distance(e).toInt
 
     while (!pq.isEmpty && visitedStates(pq.head._1)._2.robotPos != e) {
       val t = pq.dequeue()
       val c = t._1
       val (ops, b) = visitedStates(c)
+      val dd = nodeDistances(c)
 
-      if (ops.size == t._2) {
+      if (dd == t._2) {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
+          val cd = ops.size + 1 + rb.robotPos.distance(e).toInt
+
           rb match {
             case rb: Board if rb.status == Playing() => {
-              visitedStates.get(rb) match {
-                case Some((l, _)) if l.size >= ops.size + 1 => {
+              nodeDistances.get(rb) match {
+                case Some(d) if d >= cd => {
                   visitedStates(rb) = (m :: ops) -> rb
-                  pq += ((rb, (ops.size + 1)))
+                  nodeDistances(rb) = cd
+                  pq += ((rb, cd))
                 }
                 case None => {
                   visitedStates(rb) = (m :: ops) -> rb
-                  pq += ((rb, (ops.size + 1)))
+                  nodeDistances(rb) = cd
+                  pq += ((rb, cd))
                 }
                 case _ => // do nothing
               }
