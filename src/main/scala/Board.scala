@@ -1,24 +1,22 @@
 import scala.io.Source
-import scala.collection.immutable.TreeMap
+import collection.immutable.{HashMap, TreeMap}
 import Tile._
 import Opcode._
 import Coordinate.Implicits._
 
-case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int), Tile], dest: Map[(Int, Int), Tile], f: (Board => Board) = identity, center: Coordinate = Coordinate(0, 0)) {
+final case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int), Tile], dest: Map[(Int, Int), Tile], f: (Board => Board) = identity) {
   def isMatch(b: Board, pos: Coordinate) =
-    source.forall(hp => <~(b.get(pos + Coordinate(hp._1._1, hp._1._2)), hp._2))
+    source.forall(hp => <~(b.get(Coordinate(hp._1._1 + pos.x, hp._1._2 + pos.y)), hp._2))
 
   def replace(b: Board, pos: Coordinate): Map[Coordinate, Tile] =
-    dest.map(hp => ((pos + Coordinate(hp._1._1, hp._1._2))) -> hp._2)
+    dest.map(hp => Coordinate(hp._1._1 + pos.x, hp._1._2 + pos.y) -> hp._2)
 }
 
 case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, water: Int = -1, flooding: Int = 0,
                  waterProof: Int = 10, tick: Int = 0, lambdas: Int = 0, status: Status = Playing(), tLambdas: Int = 0, ticksUnderwater: Int = 0) {
 
-  def contains(pos: Coordinate) = pos.isInside(width, height)
-  def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse('Invalid)
-  def isUnderwater(pos: Coordinate, water: Int) = (height - pos.y - 1) <= water
-  def isUnderwater = (height - robotPos.y - 1) <= water
+  @inline def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse('Invalid)
+  @inline def isUnderwater = (height - robotPos.y - 1) <= water
 
   lazy val empty = (for (i <- Range(0, width); j <- Range(0, height)) yield (Coordinate(i, j) -> 'Empty)).toMap[Coordinate, Tile]
   lazy val sortedKeys = for (i <- Range(0, width); j <- Range(height-1, -1, -1)) yield Coordinate(i, j)
@@ -41,7 +39,6 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
           case _ => '?'
         }
       }.mkString
-
     }.mkString("\n")
   }
 
