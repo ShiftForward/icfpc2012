@@ -18,9 +18,6 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
   @inline def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse('Invalid)
   @inline def isUnderwater = (height - robotPos.y - 1) <= water
 
-  lazy val empty = (for (i <- Range(0, width); j <- Range(0, height)) yield (Coordinate(i, j) -> 'Empty)).toMap[Coordinate, Tile]
-  lazy val sortedKeys = for (i <- Range(0, width); j <- Range(height-1, -1, -1)) yield Coordinate(i, j)
-
   override def toString = {
     val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
     val sortedLines = TreeMap(lines.toArray: _*)
@@ -71,9 +68,9 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
   def getClosest(t: Tile): List[Coordinate] = getClosest(robotPos, t)
 
-  def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern]): Board = {
+  def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern], keys: IndexedSeq[Coordinate]): Board = {
     val ps = patterns.filter(_.pred(b, opCode))
-    val ts = b.sortedKeys filterNot { pos => val o = b.get(pos); o == 'Empty || o == 'Lambda || o == 'Earth || o == 'Wall } flatMap { pos =>
+    val ts = keys filterNot { pos => val o = b.get(pos); o == 'Empty || o == 'Lambda || o == 'Earth || o == 'Wall } flatMap { pos =>
        ps collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) }
     }
 
@@ -88,9 +85,10 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
   def eval(o: Opcode): Board = {
     import Board._
 
-    val newBoardA = applyPatterns(this, o, tier1)
-    val newBoardB = applyPatterns(newBoardA, o, tier2)
-    val newBoardC = applyPatterns(newBoardB, o, tier3)
+    val keys = Board.sortedKeys(this.width, this.height)
+    val newBoardA = applyPatterns(this, o, tier1, keys)
+    val newBoardB = applyPatterns(newBoardA, o, tier2, keys)
+    val newBoardC = applyPatterns(newBoardB, o, tier3, keys)
 
     val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
     val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
@@ -104,6 +102,12 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
 object Board {
   @inline def OpcodePred(o: Opcode) = (_: Board, opCode: Opcode) => <~~(opCode, o)
+
+  var lastGen: IndexedSeq[Coordinate] = null
+  def sortedKeys(width: Int, height: Int): IndexedSeq[Coordinate] = {
+    if (lastGen == null) lastGen = for (i <- Range(0, width); j <- Range(height-1, -1, -1)) yield Coordinate(i, j)
+    lastGen
+  }
 
   val openGate  = Pattern( { (b, _) => b.tLambdas == b.lambdas },
                           Map((0, 0) -> 'ClosedLift),
