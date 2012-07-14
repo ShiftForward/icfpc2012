@@ -46,7 +46,7 @@ object ShortestPathCalculator {
           rb match {
             case rb: Board if rb.status == Playing() | rb.status == Win() => {
               nodeDistances.get(rb) match {
-                case Some(d) if d >= cd => {
+                case Some(d) if d > cd => {
                   visitedStates(rb) = (m :: ops) -> rb
                   nodeDistances(rb) = cd
                   pq += ((rb, cd))
