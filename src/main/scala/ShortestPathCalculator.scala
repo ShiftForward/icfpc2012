@@ -1,18 +1,16 @@
 import collection.mutable
 import scala.collection.immutable.TreeMap
-import scala.collection.mutable.{Map => MutableMap}
+import scala.collection.mutable.{HashMap => MutableMap}
 import java.security.MessageDigest
 import Coordinate.Implicits._
 
 object ShortestPathCalculator {
-  private lazy val messageDigest = MessageDigest.getInstance("MD5")
-  private lazy val mapEncodings = MutableMap[String, String]()
   private lazy val pathCaches = MutableMap[Coordinate, Map[Coordinate, List[Opcode]]]()
 
   implicit private def encodeBoard(b: Board): String = {
-    //b.robotPos.toString
+    b.robotPos.toString
 
-    val lines = TreeMap(b.tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
+    /*val lines = TreeMap(b.tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
     val sortedLines = TreeMap(lines.toArray: _*)
     val bs = sortedLines.map { case (n, line) =>
       line.map { case (_, tile) =>
@@ -30,14 +28,7 @@ object ShortestPathCalculator {
       }.mkString
     }.mkString("\n")
 
-    mapEncodings.get(bs) match {
-      case Some(s) => s
-      case None => {
-        val e = messageDigest.digest(bs.getBytes).map("%02x".format(_)).mkString
-        mapEncodings(bs) = e
-        e
-      }
-    }
+    bs*/
   }
 
   private implicit def ShortestPathOrdering =
@@ -49,7 +40,12 @@ object ShortestPathCalculator {
 
   private def possibleMoves = List(MoveUp(), MoveDown(), MoveLeft(), MoveRight(), Wait())
 
-  def shortestPath(s: Coordinate, e: Coordinate, sb: Board): List[Opcode] = {
+  def shortestPath(
+      s: Coordinate,
+      e: Coordinate,
+      sb: Board,
+      distanceThreshold: ((Int, Coordinate, Coordinate) => Boolean) =
+        {(_, _, _) => false }): List[Opcode] = {
     val rb = sb.copy(robotPos = s)
     val visitedStates =
       MutableMap[String, (List[Opcode], Board)]()
@@ -65,7 +61,9 @@ object ShortestPathCalculator {
       val (ops, b) = visitedStates(c)
       val dd = nodeDistances(c)
 
-      if (dd == t._2) {
+      if (distanceThreshold(ops.size, s, e)) {
+        pq.clear
+      } else if (dd == t._2) {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
           val cd = ops.size + 1 + rb.robotPos.manhattanDistance(e)
