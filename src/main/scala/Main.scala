@@ -25,7 +25,7 @@ object Main extends App {
   // val b = Board("# #\n#L#\n#\\#\n#R#\n###".split('\n'))
 
   //val b = Board.create("#  #\n#  #\n#  #\n#R #\n# *#\n# *#".split('\n'), (-1, 2, 1))
-  val b = Board()
+  val b = Board("src/main/resources/map/contest5.map")
   println(b)
 
   val lambdas = b.allLambdas
