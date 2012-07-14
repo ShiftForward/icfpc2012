@@ -4,7 +4,7 @@ import Tile._
 import Opcode._
 import Coordinate.Implicits._
 
-case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int), Tile], dest: Map[(Int, Int), Tile], f: (Board => Board) = identity ) {
+case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int), Tile], dest: Map[(Int, Int), Tile], f: (Board => Board) = identity, center: Coordinate = Coordinate(0, 0)) {
   def isMatch(b: Board, pos: Coordinate) =
     source.forall(hp => <~(b.get(pos + Coordinate(hp._1._1, hp._1._2)), hp._2))
 
@@ -61,7 +61,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     }.sortBy { _.distance(robotPos) }
   }
 
-  def liftPosition = tiles.find { case (_, 'OpenLift) => true; case _ => false }.map(_._1).get
+  def liftPosition = tiles.find { _._2 == 'OpenLift }.map(_._1).get
 
   def getClosest(c: Coordinate, t: Tile, l: Int = 20): List[Coordinate] = {
     val coordinates = for (i <- (-l/2 to l/2); j <- (-l/2 to l/2)) yield Coordinate(i, j)
@@ -74,13 +74,13 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
   def getClosest(t: Tile): List[Coordinate] = getClosest(robotPos, t)
 
-  def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern]): Board = {
+  def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern], keys: IndexedSeq[Coordinate]): Board = {
     val ps = patterns.filter(_.pred(b, opCode))
-    val ts = b.sortedKeys flatMap { pos =>
+    val ts = keys flatMap { pos =>
        ps collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) }
     }
 
-    val newBoard = ts.foldLeft(b)((acc, t) => b.copy(tiles = acc.tiles ++ t._1))
+    val newBoard = b.copy(tiles = ts.foldLeft(b.tiles)((acc, t) => acc ++ t._1))
     ts.foldLeft(newBoard)((acc, t) => t._2(acc))
   }
 
@@ -91,9 +91,11 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
   def eval(o: Opcode): Board = {
     import Board._
 
-    val newBoardA = applyPatterns(this, o, tier1)
-    val newBoardB = applyPatterns(newBoardA, o, tier2)
-    val newBoardC = applyPatterns(newBoardB, o, tier3)
+    val keys      = (this.sortedKeys filterNot { pos => val o = this.get(pos); o == 'Empty || o == 'Lambda || o == 'Earth })
+
+    val newBoardA = applyPatterns(this, o, tier1, keys)
+    val newBoardB = applyPatterns(newBoardA, o, tier2, keys)
+    val newBoardC = applyPatterns(newBoardB, o, tier3, keys)
 
     val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
     val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
@@ -117,8 +119,8 @@ object Board {
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot, (2, 0) -> 'StableRock), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
 
   val PushLeft  = Pattern(OpcodePred('MoveLeft),
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'StableRock, (2, 0) -> 'Robot),
-                          Map((0, 0) -> 'StableRock, (1, 0) -> 'Robot, (2, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
+                          Map((-2, 0) -> 'Empty, (-1, 0) -> 'StableRock, (0, 0) -> 'Robot),
+                          Map((-2, 0) -> 'StableRock, (-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
 
   val Fall      = Pattern((_, _) => true,
                           Map((0, 0) -> 'Rock,  (0, 1) -> 'Empty),
@@ -129,8 +131,8 @@ object Board {
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Empty, (0, 1) -> 'Rock, (1, 1) -> 'FallingRock))
 
   val FallLeft  = Pattern((_, _) => true,
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'Rock, (0, 1) -> 'Empty, (1, 1) -> 'Rock),
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'Empty, (0, 1) -> 'FallingRock, (1, 1) -> 'Rock))
+                          Map((-1, 0) -> 'Empty, (0, 0) -> 'Rock, (-1, 1) -> 'Empty, (0, 1) -> 'Rock),
+                          Map((-1, 0) -> 'Empty, (0, 0) -> 'Empty, (-1, 1) -> 'FallingRock, (0, 1) -> 'Rock))
 
   val FallRightR = Pattern((_, _) => true,
                           Map((0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Lambda, (1, 1) -> 'Empty),
@@ -141,12 +143,12 @@ object Board {
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
 
   val MvLeft    = Pattern(OpcodePred('MoveLeft),
-                          Map((0, 0) -> 'Reachable, (1, 0) -> 'Robot),
-                          Map((0, 0) -> 'Robot, (1, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
+                          Map((-1, 0) -> 'Reachable, (0, 0) -> 'Robot),
+                          Map((-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
 
   val MvUp      = Pattern(OpcodePred('MoveUp),
-                          Map((0, 0) -> 'Reachable, (0, 1) -> 'Robot),
-                          Map((0, 0) -> 'Robot, (0, 1) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(0, -1)) } )
+                          Map((0, -1) -> 'Reachable, (0, 0) -> 'Robot),
+                          Map((0, -1) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(0, -1)) } )
 
   val MvDown    = Pattern(OpcodePred('MoveDown),
                           Map((0, 0) -> 'Robot, (0, 1) -> 'Reachable),
@@ -157,12 +159,12 @@ object Board {
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0), status = Win()) } )
 
   val MvLeftWin  = Pattern(OpcodePred('MoveLeft),
-                          Map((0, 0) -> 'OpenLift, (1, 0) -> 'Robot),
-                          Map((0, 0) -> 'Robot, (1, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0), status = Win()) } )
+                          Map((-1, 0) -> 'OpenLift, (0, 0) -> 'Robot),
+                          Map((-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0), status = Win()) } )
 
   val MvUpWin      = Pattern(OpcodePred('MoveUp),
-                          Map((0, 0) -> 'OpenLift, (0, 1) -> 'Robot),
-                          Map((0, 0) -> 'Robot, (0, 1) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(0, -1), status = Win()) } )
+                          Map((0, -1) -> 'OpenLift, (0, 0) -> 'Robot),
+                          Map((0, -1) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(0, -1), status = Win()) } )
 
   val MvDownWin    = Pattern(OpcodePred('MoveDown),
                           Map((0, 0) -> 'Robot, (0, 1) -> 'OpenLift),
@@ -181,12 +183,12 @@ object Board {
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(1, 0)) } )
 
   val MvLeftEat  = Pattern(OpcodePred('MoveLeft),
-                          Map((0, 0) -> 'Lambda, (1, 0) -> 'Robot),
-                          Map((0, 0) -> 'Robot, (1, 0) -> 'Empty), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(-1, 0)) } )
+                          Map((-1, 0) -> 'Lambda, (0, 0) -> 'Robot),
+                          Map((-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(-1, 0)) } )
 
   val MvUpEat      = Pattern(OpcodePred('MoveUp),
-                          Map((0, 0) -> 'Lambda, (0, 1) -> 'Robot),
-                          Map((0, 0) -> 'Robot, (0, 1) -> 'Empty), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(0, -1)) } )
+                          Map((0, -1) -> 'Lambda, (0, 0) -> 'Robot),
+                          Map((0, -1) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(0, -1)) } )
 
   val MvDownEat    = Pattern(OpcodePred('MoveDown),
                           Map((0, 0) -> 'Robot, (0, 1) -> 'Lambda),
@@ -212,9 +214,8 @@ object Board {
       }
     }.flatten
 
-    val robotPos = tiles.find { case (_, 'Robot) => true; case _ => false }.map(_._1).get
-
-    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { case (_, 'Lambda) => true; case _ => false  })
+    val robotPos = tiles.find { _._2 == 'Robot }.map(_._1).get
+    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { _._2 == 'Lambda })
   }
 
   def apply(filename: String): Board = {
