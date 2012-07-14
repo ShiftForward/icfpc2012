@@ -1,4 +1,4 @@
-case class Coordinate(x: Int, y: Int) {
+final case class Coordinate(x: Int, y: Int) {
   override def toString = "%s:%s".format(x, y)
 
   def +(that: Coordinate) = Coordinate(x + that.x, y + that.y)
@@ -6,14 +6,14 @@ case class Coordinate(x: Int, y: Int) {
   def *(factor: Double)   = Coordinate((x * factor).toInt, (y * factor).toInt)
 
   def distance(that: Coordinate) = (this-that).length
-  def manhattanDistance(that: Coordinate) = math.abs(this.x - that.x) +
-                                            math.abs(this.y - that.y)
+  def manhattanDistance(that: Coordinate) = math.abs(this.x - that.x) + math.abs(this.y - that.y)
+
   def length = math.sqrt(x * x + y * y)
 
-  def Up    = this + Coordinate( 0, -1)
-  def Down  = this + Coordinate( 0,  1)
-  def Left  = this + Coordinate(-1,  0)
-  def Right = this + Coordinate( 1,  0)
+  def Up    = Coordinate(0, y - 1)
+  def Down  = Coordinate(0, y + 1)
+  def Left  = Coordinate(x - 1, 0)
+  def Right = Coordinate(x + 1, 0)
 
   def isInside(width: Int, height: Int) = x >= 0 && x <= width && y >= 0 && y <= height
 }

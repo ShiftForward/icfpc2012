@@ -25,11 +25,12 @@ object Main extends App {
   // val b = Board("# #\n#L#\n#\\#\n#R#\n###".split('\n'))
 
   //val b = Board.create("#  #\n#  #\n#  #\n#R #\n# *#\n# *#".split('\n'), (-1, 2, 1))
-  val b = Board("src/main/resources/map/contest5.map")
+  val b = Board("src/main/resources/map/contest8.map")
   println(b)
 
   val lambdas = b.allLambdas
   var moves: List[Opcode] = null
+  val abortList = List('Abort)
 
   time {
     moves = Agent.visitNodes(lambdas, b)
@@ -37,13 +38,12 @@ object Main extends App {
     val resb = moves.foldLeft(b) { (cb: Board, m: Opcode) => cb.eval(m) }
     if (resb.lambdas == resb.tLambdas) {
       val movesToEnd = ShortestPathCalculator.shortestPath(resb.liftPosition, resb)
-      if (!movesToEnd.isEmpty)
-        moves ++= movesToEnd
-      else
-        moves ++= List('Abort)
+      moves ++= (if (!movesToEnd.isEmpty) movesToEnd else abortList)
     } else {
-      moves ++= List('Abort)
+      moves ++= abortList
     }
+
+    println (resb)
   }
 
   println (Opcode.toString(moves))

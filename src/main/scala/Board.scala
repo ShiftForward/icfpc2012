@@ -75,10 +75,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
     coordinates.foldLeft(List[Coordinate]()) { (l, cc) =>
       val currentC = c + cc
-      get(currentC) match {
-        case tile: Tile if <~(tile, t) => (currentC :: l)
-        case _ => l
-      }
+      if (<~(get(currentC), t)) (currentC :: l) else l
     }
   }
 
