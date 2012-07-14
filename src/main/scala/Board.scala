@@ -51,6 +51,15 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     println("-----------")
   }
 
+  def allLambdas = {
+    tiles.foldLeft(List[Coordinate]()) { case (list, (coordinate, tile)) =>
+      tile match {
+        case _: Lambda => coordinate :: list
+        case _ => list
+      }
+    }.sortBy { coordinate => coordinate.distance(robotPos) }
+  }
+
   def getClosest(c: Coordinate, t: Tile, l: Int = 20): List[Coordinate] = {
     val coordinates = for (i <- (-l/2 to l/2); j <- (-l/2 to l/2)) yield Coordinate(i, j)
 
