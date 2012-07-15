@@ -1,3 +1,4 @@
+import collection.mutable
 import scala.io.Source
 import collection.immutable.TreeMap
 import Tile._
@@ -14,7 +15,7 @@ final case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int
 
 case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, water: Int = -1, flooding: Int = 0,
                  waterProof: Int = 10, tick: Int = 0, lambdas: Int = 0, status: Status = Playing(), tLambdas: Int = 0,
-                 ticksUnderwater: Int = 0, nRazors: Int = 0, growth: Int = 25) {
+                 ticksUnderwater: Int = 0, nRazors: Int = 0, growth: Int = 25, trampolines: Map[Coordinate, Coordinate]) {
 
   @inline def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse('Invalid)
   @inline def isUnderwater = (height - robotPos.y - 1) <= water
@@ -35,6 +36,24 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
       case 'Rock | 'FallingRock     => '*'
       case 'HORock | 'HOFallingRock => '@'
       case 'Razor                   => '!'
+      case 'TrampolineA             => 'A'
+      case 'TrampolineB             => 'B'
+      case 'TrampolineC             => 'C'
+      case 'TrampolineD             => 'D'
+      case 'TrampolineE             => 'E'
+      case 'TrampolineF             => 'F'
+      case 'TrampolineG             => 'G'
+      case 'TrampolineH             => 'H'
+      case 'TrampolineI             => 'I'
+      case 'Target1                 => '1'
+      case 'Target2                 => '2'
+      case 'Target3                 => '3'
+      case 'Target4                 => '4'
+      case 'Target5                 => '5'
+      case 'Target6                 => '6'
+      case 'Target7                 => '7'
+      case 'Target8                 => '8'
+      case 'Target9                 => '9'
       case _                        => '?'
     } }.mkString }.mkString("\n")
   }
@@ -49,6 +68,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     println("Razors: " + nRazors)
     println("Beard growth: " + growth)
     println("Status: " + status)
+    println("Trampolines " + trampolines)
     println("-----------")
   }
 
@@ -200,7 +220,6 @@ object Board {
                           Map((0, 0) -> 'Robot, (0, 1) -> 'OpenLift),
                           Map((0, 0) -> 'Empty, (0, 1) -> 'Robot), { s => s.copy(robotPos = s.robotPos + Coordinate(0, 1), status = Win()) } )
 
-
   val MvRightEat = Pattern(OpcodePred('MoveRight),
                           Map((0, 0) -> 'Robot, (1, 0) -> 'Lambda),
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(1, 0)) } )
@@ -233,6 +252,30 @@ object Board {
                           Map((0, 0) -> 'Robot, (0, 1) -> 'Razor),
                           Map((0, 0) -> 'Empty, (0, 1) -> 'Robot), { s => s.copy(nRazors = s.nRazors + 1, robotPos = s.robotPos + Coordinate(0, 1)) } )
 
+  // --- Trampolines
+
+  def trampF(c: Coordinate)(s: Board) = {
+    val newPos  = s.trampolines(s.robotPos + c)
+    val sources = s.trampolines.filter(_._2 == newPos).map(_._1 -> 'Empty)
+    s.copy(robotPos = newPos, tiles = (s.tiles + (newPos -> 'Robot)) ++ sources)
+  }
+
+  val MvRightT       = Pattern(OpcodePred('MoveRight),
+                          Map((0, 0) -> 'Robot, (1, 0) -> 'Trampoline),
+                          Map((0, 0) -> 'Empty, (1, 0) -> 'Empty), trampF(Coordinate(1, 0)))
+
+  val MvLeftT        = Pattern(OpcodePred('MoveLeft),
+                          Map((-1, 0) -> 'Trampoline, (0, 0) -> 'Robot),
+                          Map((-1, 0) -> 'Empty,      (0, 0) -> 'Empty), trampF(Coordinate(-1, 0)))
+
+  val MvUpT          = Pattern(OpcodePred('MoveUp),
+                          Map((0, -1) -> 'Trampoline, (0, 0) -> 'Robot),
+                          Map((0, -1) -> 'Empty,      (0, 0) -> 'Empty), trampF(Coordinate(-1, 0)))
+
+  val MvDownT        = Pattern(OpcodePred('MoveDown),
+                          Map((0, 0) -> 'Robot, (0, 1) -> 'Trampoline),
+                          Map((0, 0) -> 'Empty, (0, 1) -> 'Empty), trampF(Coordinate(1, 0)))
+
   val beardGrowthPred = (b: Board, _: Opcode) => (b.tick % b.growth == (b.growth -1))
 
   val BeardGrowthN  = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, ( 0, -1) -> 'Empty), Map(( 0, -1) -> 'Beard))
@@ -258,7 +301,10 @@ object Board {
     List(StableW, StableR, StableL, StableOl, StableCl, StableE, StableWHO, StableRHO, StableLHO, StableOlHO, StableClHO, StableEHO)
 
   val moves =
-    List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat, MvRightRazor, MvLeftRazor, MvUpRazor, MvDownRazor)
+    List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin,
+         MvRightEat, MvLeftEat, MvUpEat, MvDownEat,
+         MvRightRazor, MvLeftRazor, MvUpRazor, MvDownRazor,
+         MvRightT, MvLeftT, MvUpT, MvDownT)
 
   val fallsAndBeards =
     List(Fall, FallHO, FallRight, FallRightHO, FallRightR, FallRightRHO, openGate,
@@ -286,7 +332,7 @@ object Board {
 
   type Metadata = (Int, Int, Int, Int, Int)
 
-  def create(board: Seq[String], metadata: Metadata = (-1, 0, 10, 0, 25)): Board = {
+  def create(board: Seq[String], metadata: Metadata = (-1, 0, 10, 0, 25), portals: Map[String, String]): Board = {
     val width = board.maxBy(_.length).length
     val height = board.length
 
@@ -300,11 +346,13 @@ object Board {
       }
     }.flatten
 
-    val robotPos = tiles.find { _._2 == 'Robot }.map(_._1).get
-    val nLambdas = tiles.count { tile => tile._2 == 'Lambda || tile._2 == 'HORock }
+    val robotPos    = tiles.find { _._2 == 'Robot }.map(_._1).get
+    val nLambdas    = tiles.count { tile => tile._2 == 'Lambda || tile._2 == 'HORock }
+    val trampolines = portals.map(kvp => tiles.find { _._2 == Symbol("Trampoline" + kvp._1) }.map(_._1).get ->
+                                         tiles.find { _._2 == Symbol("Target"     + kvp._2) }.map(_._1).get)
 
     new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = nLambdas,
-              nRazors = razors, growth = growth)
+              nRazors = razors, growth = growth, trampolines = trampolines)
   }
 
   def apply(filename: String): Board = {
@@ -320,12 +368,14 @@ object Board {
   private def parse(input: Seq[String]): Board = {
     var (water, flooding, waterproof, razors, growth) = (-1, 0, 10, 0, 25)
     var board = Seq[String]()
+    var portals = mutable.HashMap[String, String]()
 
     val Water = """Water (\d+)""".r
     val Flooding = """Flooding (\d+)""".r
     val WaterProof = """Waterproof (\d+)""".r
     val Razors = """Razors (\d+)""".r
     val Growth = """Growth (\d+)""".r
+    val Trampoline = """Trampoline (.) targets (\d)""".r
 
     input foreach { _ match {
         case Water(w) => water = (w.toInt - 1)
@@ -333,9 +383,10 @@ object Board {
         case WaterProof(wp) => waterproof = wp.toInt
         case Razors(r) => razors = r.toInt
         case Growth(g) => growth = g.toInt
+        case Trampoline(s, d) => portals += (s -> d.toString)
         case l: String => board = board :+ l
     }}
 
-    create(board, (water, flooding, waterproof, razors, growth))
+    create(board, (water, flooding, waterproof, razors, growth), portals.toMap)
   }
 }

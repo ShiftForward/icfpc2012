@@ -30,17 +30,17 @@ object Main extends App {
   // val b = Board("#L#\n#*#\n#*#\n# #\n# #\n#R#\n#\\#\n###".split('\n'))
   // val b = Board("# #\n#L#\n#\\#\n#R#\n###".split('\n'))
   //val b = Board.create("#  #\n#  #\n#  #\n#R #\n# *#\n# *#".split('\n'), (-1, 2, 1))
-  val b = Board("src/main/resources/map/contest3.map")
-
-  println(b)
+  val b = Board("src/main/resources/trampoline/trampoline1.map")
 
   var moves: List[Opcode] = null
   val abortList = List('Abort)
 
   time {
-    moves = Agent.getMoves(b)
-    implicit val opCode = 'Wait
+    val moves = Opcode("WDLL")
+    moves.foldLeft(b) { (board, move) =>
+      val nb = board.eval(move)
+      nb.printStatus()
+      nb
+    }
   }
-
-  println (Opcode.toString(moves))
 }
