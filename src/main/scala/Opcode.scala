@@ -24,8 +24,3 @@ object Opcode {
     }.toList
   }
 }
-
-sealed trait Status
-case class Playing() extends Status
-case class Win() extends Status
-case class Lost() extends Status

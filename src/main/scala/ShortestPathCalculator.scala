@@ -97,7 +97,7 @@ object ShortestPathCalculator {
           val cd = ops.size + 1
 
           rb match {
-            case rb if rb.status == Playing() | rb.status == Win() => {
+            case rb if rb.status == 'Playing | rb.status == 'Win => {
               visitedStates.get(rb) match {
                 case Some((currentOps, _)) if currentOps.size > cd => {
                   visitedStates(rb) = (m :: ops) -> rb

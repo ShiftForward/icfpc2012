@@ -30,7 +30,7 @@ object AStar {
       case None => {
         var m = -b.lambdas * 25
 
-        if (b.status == Win()) {
+        if (b.status == 'Win) {
           m -= b.lambdas * 50
         } else if (b.tLambdas == b.lambdas) {
           m += liftPosition.manhattanDistance(b.robotPos)
@@ -87,7 +87,7 @@ object AStar {
 
   private def evaluateScore(b: Board) = {
     var score = b.lambdas * 25
-    if (b.status == Win())
+    if (b.status == 'Win)
       score += b.lambdas * 50
     else
       0
@@ -121,7 +121,7 @@ object AStar {
     val startTime = System.nanoTime()
 
     while (!pq.isEmpty &&
-           visitedStates(pq.head._1)._2.status != Win() &&
+           visitedStates(pq.head._1)._2.status != 'Win &&
            (System.nanoTime() - startTime) / 1000000 < 100000) {
       val t = pq.dequeue()
       val c = t._1
@@ -140,7 +140,7 @@ object AStar {
           }
 
           neb match {
-            case rb if rb.status == Playing() | rb.status == Win() => {
+            case rb if rb.status == 'Playing | rb.status == 'Win => {
               boardEvaluations.get(neb) match {
                 case Some(d) if d > cd => {
                   visitedStates(neb) = (m :: ops) -> neb

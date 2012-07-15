@@ -47,4 +47,7 @@ object Main extends App {
   }
 
   println(Opcode.toString(moves))
+
+  val runtime = Runtime.getRuntime
+  println(runtime.totalMemory () - runtime.freeMemory())
 }
