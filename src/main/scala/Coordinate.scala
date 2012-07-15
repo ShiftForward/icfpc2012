@@ -6,10 +6,6 @@ final case class Coordinate(x: Int, y: Int) {
 
   def distance(that: Coordinate) = (this-that).length
   def manhattanDistance(that: Coordinate) = math.abs(this.x - that.x) + math.abs(this.y - that.y)
-  def neighbours = List(
-    Coordinate(x - 1, y - 1), Coordinate(x    , y - 1), Coordinate(x + 1, y - 1),
-    Coordinate(x - 1, y    )                          , Coordinate(x + 1, y    ),
-    Coordinate(x - 1, y + 1), Coordinate(x    , y + 1), Coordinate(x + 1, y + 1))
 
   def length = math.sqrt(x * x + y * y)
 }

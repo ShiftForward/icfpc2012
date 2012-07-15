@@ -123,15 +123,15 @@ object Board {
 
   val FallRight = Pattern((_, _) => true,
                           Map((0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Rock, (1, 1) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'Empty, (0, 1) -> 'Rock, (1, 1) -> 'FallingRock))
+                          Map((0, 0) -> 'Empty, (1, 1) -> 'FallingRock))
 
   val FallLeft  = Pattern((_, _) => true,
                           Map((-1, 0) -> 'Empty, (0, 0) -> 'Rock, (-1, 1) -> 'Empty, (0, 1) -> 'Rock),
-                          Map((-1, 0) -> 'Empty, (0, 0) -> 'Empty, (-1, 1) -> 'FallingRock, (0, 1) -> 'Rock))
+                          Map((0, 0) -> 'Empty, (-1, 1) -> 'FallingRock))
 
   val FallRightR = Pattern((_, _) => true,
                           Map((0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Lambda, (1, 1) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'Empty, (0, 1) -> 'Lambda, (1, 1) -> 'FallingRock))
+                          Map((0, 0) -> 'Empty, (1, 1) -> 'FallingRock))
 
   val MvRight   = Pattern(OpcodePred('MoveRight),
                           Map((0, 0) -> 'Robot, (1, 0) -> 'Reachable),
@@ -167,7 +167,7 @@ object Board {
 
   val Die       = Pattern((_, _) => true,
                           Map((0, -1) -> 'FallingRock, (0, 0) -> 'Robot),
-                          Map((0, -1) -> 'FallingRock, (0, 0) -> 'Robot), { s => s.copy(status = Lost()) })
+                          Map(), { s => s.copy(status = Lost()) })
 
   val DieOutrun = Pattern(OpcodePred('MoveDown),
                           Map((0, -1) -> 'Rock, (0, 0) -> 'Robot),
