@@ -23,6 +23,8 @@ object Tile {
       case '.'  => 'Earth
       case ' '  => 'Empty
       case 'W'  => 'Beard
+      case '@'  => 'HORock
+      case '!'  => 'Razor
       case 'A'  => 'TrampolineA
       case 'B'  => 'TrampolineB
       case 'C'  => 'TrampolineC
