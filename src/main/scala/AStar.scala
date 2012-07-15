@@ -48,7 +48,10 @@ object AStar {
 
   private def nextExtendedBoard(b: ExtendedBoard, o: Opcode) = {
     ExtendedBoard(b.board.eval(o),
-                  ShortestPathCalculator.bfs(b.board.robotPos, liftPosition, b.board))
+                  if (!b.pathToLift.isEmpty && ShortestPathCalculator.isClear(b.pathToLift, b.board))
+                    ShortestPathCalculator.bfs(b.board.robotPos, b.pathToLift.head, b.board) ++ b.pathToLift.tail
+                  else
+                    ShortestPathCalculator.bfs(b.board.robotPos, liftPosition, b.board))
   }
 
   implicit private def encodeBoard(b: ExtendedBoard): String = {

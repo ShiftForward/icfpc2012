@@ -43,4 +43,12 @@ object ShortestPathCalculator {
     else
       q.head.reverse
   }
+
+  def isClear(cs: List[Coordinate], b: Board) = {
+    cs.foldLeft(true) { (clear, c) =>
+      clear && (<~(b.get(c), 'Reachable) ||
+                <~(b.get(c), 'Lambda) ||
+                <~(b.get(c), 'Lift))
+    }
+  }
 }
