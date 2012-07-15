@@ -23,16 +23,17 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     val sortedLines = TreeMap(lines.toArray: _*)
 
     sortedLines.map { _._2.map { _._2 match {
-      case 'Robot               => 'R'
-      case 'Wall                => '#'
-      case 'Lambda              => '\\'
-      case 'Earth               => '.'
-      case 'Empty               => ' '
-      case 'Beard               => 'W'
-      case 'ClosedLift          => 'L'
-      case 'OpenLift            => 'O'
-      case 'Rock | 'FallingRock => '*'
-      case _                    => '?'
+      case 'Robot                   => 'R'
+      case 'Wall                    => '#'
+      case 'Lambda                  => '\\'
+      case 'Earth                   => '.'
+      case 'Empty                   => ' '
+      case 'Beard                   => 'W'
+      case 'ClosedLift              => 'L'
+      case 'OpenLift                => 'O'
+      case 'Rock | 'FallingRock     => '*'
+      case 'HORock | 'HOFallingRock => '@'
+      case _                        => '?'
     } }.mkString }.mkString("\n")
   }
 
@@ -264,7 +265,9 @@ object Board {
     }.flatten
 
     val robotPos = tiles.find { _._2 == 'Robot }.map(_._1).get
-    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = tiles.count { _._2 == 'Lambda })
+    val nLambdas = tiles.count { tile => tile._2 == 'Lambda || tile._2 == 'HORock }
+
+    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = nLambdas)
   }
 
   def apply(filename: String): Board = {

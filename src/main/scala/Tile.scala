@@ -6,8 +6,8 @@ object Tile {
     (b == 'Tile) ||
     (b == 'Reachable && (a == 'Earth        || a == 'Empty)) ||
     (b == 'Lift      && (a == 'OpenLift     || a == 'ClosedLift)) ||
-    (b == 'Rock      && (a == 'StableRock   || a == 'FallingRock)) ||
-    (b == 'HORock    && (a == 'HOStableRock || a == 'HOFallingRock))
+    (b == 'Rock      && (a == 'FallingRock)) ||
+    (b == 'HORock    && (a == 'HOFallingRock))
   }
 
   def apply(c: Char): Symbol = {
@@ -21,6 +21,7 @@ object Tile {
       case '.'  => 'Earth
       case ' '  => 'Empty
       case 'W'  => 'Beard
+      case '@'  => 'HORock
     }
   }
 }
