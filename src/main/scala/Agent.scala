@@ -1,5 +1,3 @@
-import Opcode._
-
 object Agent {
   def getMoves(b: Board) = {
     val moves = AStar.evaluateBestSolution(b)
