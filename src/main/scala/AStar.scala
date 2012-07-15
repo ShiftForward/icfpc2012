@@ -7,6 +7,7 @@ import Opcode._
 
 object AStar {
   var liftPosition: Coordinate = _
+  var allLambdas: List[Coordinate] = _
   var coordinates: Set[Coordinate] = _
   val evaluations = MutableMap[String, Int]()
   val bestInCoord = MutableMap[Coordinate, Int]()
@@ -20,10 +21,12 @@ object AStar {
     'ClosedLift -> 50,
     'OpenLift -> 50)
 
-  private def evaluateState(ops: List[Opcode], b: Board) = {
-    var evaluation = ops.size * 10
+  private def evaluateOpcodeList(ops: List[Opcode]) = {
+    ops.size
+  }
 
-    var mapEval = evaluations.get(b) match {
+  private def evaluateBoard(b: Board) = {
+    evaluations.get(b) match {
       case Some(value) => value
       case None => {
         var m = -b.lambdas * 25
@@ -33,11 +36,14 @@ object AStar {
         } else if (b.tLambdas == b.lambdas) {
           m += liftPosition.manhattanDistance(b.robotPos)
         } else {
-          m += b.allLambdas.foldLeft(b.width + b.height) { (minval, coordinate) =>
+          m += allLambdas.foldLeft(b.width + b.height) { (minval, coordinate) =>
+            if (b.get(coordinate) == 'Lambda) {
             val dist = coordinate.manhattanDistance(b.robotPos)
             if (dist < minval)
               dist
             else
+              minval
+            } else
               minval
           }
         }
@@ -55,11 +61,18 @@ object AStar {
       }
     }
 
-    evaluation + mapEval
+  }
+
+  private def evaluateState(ops: List[Opcode], b: Board) = {
+    evaluateOpcodeList(ops) + evaluateBoard(b)
   }
 
   private def extractLiftPosition(b: Board) {
     liftPosition = b.tiles.find({ entry => <~(entry._2, 'Lift) }).get._1
+  }
+
+  private def extractAllLambdas(b: Board) {
+    allLambdas = b.allLambdas
   }
 
   private def extractCoordinates(b: Board) {
@@ -89,6 +102,7 @@ object AStar {
 
   def evaluateBestSolution(b: Board) = {
     extractLiftPosition(b)
+    extractAllLambdas(b)
     extractCoordinates(b)
 
     val visitedStates = MutableMap[String, (List[Opcode], Board)]()
