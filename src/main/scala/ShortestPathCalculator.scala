@@ -8,9 +8,9 @@ import Opcode._
 import Tile._
 
 object ShortestPathCalculator {
+  var liftPosition: Coordinate = _
   val possibleMoves = List('MoveUp, 'MoveDown, 'MoveLeft, 'MoveRight, 'Wait)
-  lazy val openedBoards = MutableMap[String, Board]()
-  lazy val paths = MutableMap[(Coordinate, Coordinate), List[Opcode]]()
+  val paths = MutableMap[(Coordinate, Coordinate), List[Opcode]]()
 
   private def applyMove(c: Coordinate, o: Opcode) = {
     o match {
@@ -38,46 +38,40 @@ object ShortestPathCalculator {
     }
 
   private def openLift(b: Board): Board = {
-    openedBoards.get(boardHash(b)) match {
-      case Some(board) => board
-      case None => {
-        val opened = b.copy(tiles = b.tiles map { case (coordinate, tile) =>
-          tile match {
-            case 'ClosedLift => (coordinate, 'OpenLift)
-              case _ => (coordinate, tile)
-          }
-        })
-        openedBoards(boardHash(b)) = opened
-        opened
-      }
-    }
+    b.copy(tiles = b.tiles ++ (if (liftPosition != null) Map(liftPosition -> 'OpenLift) else Map()))
   }
 
   private def cachedPath(b: Board, e: Coordinate) = {
-    if (paths.contains((b.robotPos, e))) {
-      val ops = paths((b.robotPos, e))
-      val nb = ops.foldLeft(openLift(b)) { (board, op) =>
-        openLift(board.eval(op))
-      }
-      if (nb.robotPos == e)
-        true
-      else {
-        paths -= ((b.robotPos, e))
-        false
-      }
-    } else {
-      false
-    }
+    paths.contains((b.robotPos, e))
   }
 
   private def cachePath(b: Board, e: Coordinate, ops: List[Opcode]) {
-    ops.foldLeft((b, ops)) { case ((board, ops), op) =>
-      paths((board.robotPos, e)) = ops
-      (openLift(board.eval(op)), ops.tail)
+    if (ops.isEmpty)
+      paths((b.robotPos, e)) = List()
+    else
+      ops.foldLeft((b, ops)) { case ((board, ops), op) =>
+        paths((board.robotPos, e)) = ops
+        (openLift(board.eval(op)), ops.tail)
+      }
+  }
+
+  private def extractLiftPosition(board: Board) {
+    val tile = board.tiles.find { case (coordinate, tile) =>
+      tile match {
+        case 'ClosedLift => true
+        case _ => false
+      }
+    }
+
+    liftPosition = tile match {
+      case Some(entry) => entry._1
+      case None => null
     }
   }
 
   def dijkstra(s: Coordinate, e: Coordinate, sb: Board): List[Opcode] = {
+    extractLiftPosition(sb)
+
     val b = openLift(sb)
     val visitedStates = MutableMap[String, (List[Opcode], Board)]()
     val pq = PriorityQueue[(String, Int)]()
@@ -118,15 +112,16 @@ object ShortestPathCalculator {
 
     if (cachedPath(b, e))
       paths((b.robotPos, e))
-    else if (pq.isEmpty)
+    else if (pq.isEmpty) {
+      cachePath(b, e, List())
       List()
-    else {
+    } else {
       val ops = visitedStates.get(pq.head._1) match {
         case Some((ops, _)) => ops.reverse
         case None => List()
       }
 
-      cachePath(b, b.robotPos, ops)
+      cachePath(b, e, ops)
       ops
     }
   }
