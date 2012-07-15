@@ -16,9 +16,9 @@ object AStar {
   }
 
   private val points = Map(
-    'Lambda -> 250,
-    'ClosedLift -> 500,
-    'OpenLift -> 500)
+    'Lambda -> 25,
+    'ClosedLift -> 50,
+    'OpenLift -> 50)
 
   private def evaluateOpcodeList(ops: List[Opcode]) = {
     ops.size
