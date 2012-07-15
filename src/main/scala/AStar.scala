@@ -9,31 +9,64 @@ case class ExtendedBoard(board: Board)
 
 object AStar {
   var liftPosition: Coordinate = _
-  val neighborHorizontal = List(Coordinate(1, 0), Coordinate(-1, 0))
-  val neighborVertical = List(Coordinate(0, 1), Coordinate(0, -1))
+  var coordinates: Set[Coordinate] = _
+  val evaluations = MutableMap[String, Int]()
+
+  implicit private def encodeBoard(b: ExtendedBoard): String = {
+    b.board.tiles.##.toString
+  }
+
+  private val points = Map(
+    'Lambda -> 25,
+    'ClosedLift -> 50,
+    'OpenLift -> 50)
 
   private def evaluateState(ops: List[Opcode], b: ExtendedBoard) = {
-    var evaluation = ops.size - b.board.lambdas * 25
+    var evaluation = ops.size * 10
 
-    if (b.board.status == Win()) {
-      evaluation -= b.board.lambdas * 50
-    } else if (b.board.tLambdas == b.board.lambdas) {
-      evaluation += b.board.liftPosition.manhattanDistance(b.board.robotPos)
-    } else {
-      evaluation += b.board.allLambdas.foldLeft(b.board.width + b.board.height) { (minval, coordinate) =>
-        val dist = coordinate.manhattanDistance(b.board.robotPos)
-        if (dist < minval)
-          dist
-        else
-          minval
+    var mapEval = evaluations.get(b) match {
+      case Some(value) => value
+      case None => {
+        var m = -b.board.lambdas * 25
+
+        if (b.board.status == Win()) {
+          m -= b.board.lambdas * 50
+        } else if (b.board.tLambdas == b.board.lambdas) {
+          m += liftPosition.manhattanDistance(b.board.robotPos)
+        } else {
+          m += 25 * (b.board.tLambdas - b.board.lambdas) * b.board.allLambdas.foldLeft(b.board.width + b.board.height) { (minval, coordinate) =>
+            val dist = coordinate.manhattanDistance(b.board.robotPos)
+            if (dist < minval)
+              dist
+            else
+              minval
+          }
+        }
+
+        val coords = FloodFiller.fill(b.board.robotPos, b.board)
+        m += (coordinates -- coords).foldLeft(0) { (sum, coord) =>
+          points.get(b.board.get(coord)) match {
+            case Some(tileValue) => sum + tileValue
+            case None => sum
+          }
+        }
+
+        evaluations(b) = m
+        m
       }
     }
 
-    evaluation
+    evaluation + mapEval
   }
 
   private def extractLiftPosition(b: Board) {
     liftPosition = b.tiles.find({ entry => <~(entry._2, 'Lift) }).get._1
+  }
+
+  private def extractCoordinates(b: Board) {
+    coordinates = b.tiles.foldLeft(Set[Coordinate]()) { (set, entry) =>
+      set + entry._1
+    }
   }
 
   private def evaluateScore(b: ExtendedBoard) = {
@@ -55,10 +88,6 @@ object AStar {
     ExtendedBoard(nb)
   }
 
-  implicit private def encodeBoard(b: ExtendedBoard): String = {
-    b.board.tiles.##.toString
-  }
-
   private implicit def StateOrdering =
     new Ordering[(String, Int)] {
       def compare(
@@ -70,6 +99,7 @@ object AStar {
 
   def evaluateBestSolution(sb: Board) = {
     extractLiftPosition(sb)
+    extractCoordinates(sb)
 
     val visitedStates = MutableMap[String, (List[Opcode], ExtendedBoard)]()
     val pq = PriorityQueue[(String, Int)]()
@@ -85,7 +115,7 @@ object AStar {
 
     while (!pq.isEmpty &&
            visitedStates(pq.head._1)._2.board.status != Win() &&
-           (System.nanoTime() - startTime) / 1000000 < 100000) {
+           (System.nanoTime() - startTime) / 1000000 < 10000) {
       val t = pq.dequeue()
       val c = t._1
       val (ops, b) = visitedStates(c)
