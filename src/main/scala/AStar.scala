@@ -10,7 +10,6 @@ object AStar {
   var allLambdas: List[Coordinate] = _
   var coordinates: Set[Coordinate] = _
   val evaluations = MutableMap[String, Int]()
-  val bestInCoord = MutableMap[Coordinate, Int]()
 
   implicit private def encodeBoard(b: Board): String = {
     b.tiles.##.toString
@@ -109,6 +108,7 @@ object AStar {
     extractLiftPosition(b)
     extractAllLambdas(b)
     extractCoordinates(b)
+    var currentLambdas = 0
 
     val visitedStates = MutableMap[String, (List[Opcode], Board)]()
     val pq = PriorityQueue[(String, Int)]()
@@ -118,7 +118,6 @@ object AStar {
     pq += ((b, evaluateState(bestSoFar, b)))
     visitedStates(b) = (bestSoFar -> b)
     boardEvaluations(b) = evaluateState(bestSoFar, b)
-    bestInCoord(b.robotPos) = boardEvaluations(b)
 
     val startTime = System.nanoTime()
 
@@ -130,38 +129,36 @@ object AStar {
       val (ops, b) = visitedStates(c)
       val dd = boardEvaluations(c)
 
-      val currentBestInCoord = bestInCoord(b.robotPos)
-
-      if (dd == t._2 && dd <= currentBestInCoord) {
+      if (dd == t._2) {
         possibleMoves.foreach { m =>
           val neb = b.eval(m)
           val cd = evaluateState(m :: ops, neb)
 
-          if (evaluateScore(neb) > bestScore) {
-            bestSoFar = m :: ops
-            bestScore = evaluateScore(neb)
-            println("Best so far (" + bestScore + ") = " + Opcode.toString(bestSoFar))
-          }
-
-          neb match {
-            case rb if rb.status == Playing() | rb.status == Win() => {
-              boardEvaluations.get(neb) match {
-                case Some(d) if d > cd => {
-                  visitedStates(neb) = (m :: ops) -> neb
-                  boardEvaluations(neb) = cd
-                  pq += ((neb, cd))
-                  bestInCoord(neb.robotPos) = cd
-                }
-                case None => {
-                  visitedStates(neb) = (m :: ops) -> neb
-                  boardEvaluations(neb) = cd
-                  pq += ((neb, cd))
-                  bestInCoord(neb.robotPos) = cd
-                }
-                case _ => // do nothing
-              }
+          if (evaluateBoard(neb) <= evaluateBoard(b)) {
+            if (evaluateScore(neb) > bestScore) {
+              bestSoFar = m :: ops
+              bestScore = evaluateScore(neb)
+              println("Best so far (" + bestScore + ") = " + Opcode.toString(bestSoFar))
             }
-            case _ => // do nothing
+
+            neb match {
+              case rb if rb.status == Playing() | rb.status == Win() => {
+                boardEvaluations.get(neb) match {
+                  case Some(d) if d > cd => {
+                    visitedStates(neb) = (m :: ops) -> neb
+                    boardEvaluations(neb) = cd
+                    pq += ((neb, cd))
+                  }
+                  case None => {
+                    visitedStates(neb) = (m :: ops) -> neb
+                    boardEvaluations(neb) = cd
+                    pq += ((neb, cd))
+                  }
+                  case _ => // do nothing
+                }
+              }
+              case _ => // do nothing
+            }
           }
         }
       }
