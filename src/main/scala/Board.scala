@@ -87,17 +87,18 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
     val keys = Board.sortedKeys(this.width, this.height)
 
-    val newBoardA = applyPatterns(this,      tier1, keys filter { pos => this.get(pos) == 'Robot })
-    val newBoardB = applyPatterns(newBoardA, tier2, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift || o == 'Beard})
-    val newBoardC = applyPatterns(newBoardB, tier3, keys filter { pos => newBoardB.get(pos) == 'Robot })
+    val newBoardA = applyPatterns(this, tier1, keys filter { pos => val o = this.get(pos); o == 'FallingRock } )
+    val newBoardB = applyPatterns(newBoardA, tier2, keys filter { pos => this.get(pos) == 'Robot })
+    val newBoardC = applyPatterns(newBoardB, tier3, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift || o == 'Beard} )
+    val newBoardD = applyPatterns(newBoardC, tier4, keys filter { pos => newBoardB.get(pos) == 'Robot })
 
-    val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
-    val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
+    val newWater = if (flooding != 0 && tick % flooding == 0) newBoardD.water + 1 else newBoardD.water
+    val newTicksUnderwater = if (newBoardD.isUnderwater) newBoardD.ticksUnderwater + 1 else 0
 
-    newBoardC.copy(tick = newBoardC.tick + 1,
+    newBoardD.copy(tick = newBoardD.tick + 1,
                    water = newWater,
                    ticksUnderwater = newTicksUnderwater,
-                   status = if (newTicksUnderwater > newBoardC.waterProof) Lost() else newBoardC.status)
+                   status = if (newTicksUnderwater > newBoardD.waterProof) Lost() else newBoardD.status)
   }
 }
 
@@ -141,7 +142,31 @@ object Board {
                           Map((0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Lambda, (1, 1) -> 'Empty),
                           Map((0, 0) -> 'Empty, (1, 1) -> 'FallingRock))
 
-  val MvRight   = Pattern(OpcodePred('MoveRight),
+  val StableW    = Pattern((_, _) => true,
+                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Wall),
+                          Map((0, 0) -> 'Rock, (0, 1) -> 'Wall))
+
+  val StableR    = Pattern((_, _) => true,
+                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Rock),
+                          Map((0, 0) -> 'Rock, (0, 1) -> 'Rock))
+
+  val StableL    = Pattern((_, _) => true,
+                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Lambda),
+                          Map((0, 0) -> 'Rock, (0, 1) -> 'Lambda))
+
+  val StableOl   = Pattern((_, _) => true,
+                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'OpenLift),
+                          Map((0, 0) -> 'Rock, (0, 1) -> 'OpenLift))
+
+  val StableCl   = Pattern((_, _) => true,
+                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'ClosedLift),
+                          Map((0, 0) -> 'Rock, (0, 1) -> 'ClosedLift))
+
+  val StableE    = Pattern((_, _) => true,
+                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Earth),
+                          Map((0, 0) -> 'Rock, (0, 1) -> 'Earth))
+
+  val MvRight    = Pattern(OpcodePred('MoveRight),
                           Map((0, 0) -> 'Robot, (1, 0) -> 'Reachable),
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
 
@@ -216,13 +241,16 @@ object Board {
   val RazorBlowNW = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1,  1) -> 'Beard), Map((-1,  1) -> 'Empty))
 
   val tier1: List[(Pattern, Option[Pattern])] =
-    List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat)
+    List(StableW, StableR, StableL, StableOl, StableCl, StableE)
 
   val tier2: List[(Pattern, Option[Pattern])] =
+    List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat)
+
+  val tier3: List[(Pattern, Option[Pattern])] =
     List(Fall, (FallRight, Some(FallLeft)), FallRightR, openGate,
          BeardGrowthN, BeardGrowthNE, BeardGrowthE, BeardGrowthSE, BeardGrowthS, BeardGrowthSW, BeardGrowthW, BeardGrowthNW)
 
-  val tier3: List[(Pattern, Option[Pattern])] =
+  val tier4: List[(Pattern, Option[Pattern])] =
     List(RazorBlowN, RazorBlowNE, RazorBlowE, RazorBlowSE, RazorBlowS, RazorBlowSW, RazorBlowW, RazorBlowNW, Die, DieOutrun)
 
   type Metadata = (Int, Int, Int)
