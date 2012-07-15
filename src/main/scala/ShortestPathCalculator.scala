@@ -8,9 +8,16 @@ import Opcode._
 import Tile._
 
 object ShortestPathCalculator {
+  type TTL = Int
+
   var liftPosition: Coordinate = _
   val possibleMoves = List('MoveUp, 'MoveDown, 'MoveLeft, 'MoveRight, 'Wait)
-  val paths = MutableMap[(Coordinate, Coordinate), List[Opcode]]()
+  val paths = MutableMap[(Coordinate, Coordinate), (TTL, List[Opcode])]()
+
+  val defaultTTL = 1
+
+  implicit def opcodeListToTTL(ops: List[Opcode]): (TTL, List[Opcode]) = (defaultTTL, ops)
+  implicit def ttlTupleToOpcode(t: (TTL, List[Opcode])) = t._2
 
   private def applyMove(c: Coordinate, o: Opcode) = {
     o match {
@@ -42,7 +49,15 @@ object ShortestPathCalculator {
   }
 
   private def cachedPath(b: Board, e: Coordinate) = {
-    paths.contains((b.robotPos, e))
+    paths.get((b.robotPos, e)).map { case (ttl, ops) =>
+      if (ttl == 0) {
+        paths -= ((b.robotPos, e))
+        false
+      } else {
+        paths += (((b.robotPos, e), (ttl - 1, ops)))
+        true
+      }
+    } getOrElse(false)
   }
 
   private def cachePath(b: Board, e: Coordinate, ops: List[Opcode]) {
