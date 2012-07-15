@@ -2,11 +2,14 @@ import scala.collection.mutable.{HashMap => MutableMap}
 import collection.mutable.PriorityQueue
 import scala.collection.immutable.TreeMap
 import Coordinate.Implicits._
+import Tile._
 import Opcode._
 
-case class ExtendedBoard(board: Board)
+case class ExtendedBoard(board: Board, pathToLift: List[Coordinate])
 
 object AStar {
+  var liftPosition: Coordinate = _
+
   private def evaluateState(ops: List[Opcode], b: ExtendedBoard) = {
     var evaluation = ops.size - b.board.lambdas * 25
 
@@ -24,15 +27,29 @@ object AStar {
       }
     }
 
+    if (b.pathToLift.isEmpty) {
+      evaluation += 50 * b.board.tLambdas
+    }
+
     evaluation
+  }
+
+  private def extractLiftPosition(b: Board) {
+    liftPosition = b.tiles.find({ entry => <~(entry._2, 'Lift) }).get._1
   }
 
   private def evaluateScore(b: ExtendedBoard) = {
     b.board.lambdas
   }
 
-  private def nextExtendedBoard(b: ExtendedBoard, o: Opcode) =
-    ExtendedBoard(b.board.eval(o))
+  private def extendFromBoard(b: Board) = {
+    ExtendedBoard(b, ShortestPathCalculator.bfs(b.robotPos, liftPosition, b))
+  }
+
+  private def nextExtendedBoard(b: ExtendedBoard, o: Opcode) = {
+    ExtendedBoard(b.board.eval(o),
+                  ShortestPathCalculator.bfs(b.board.robotPos, liftPosition, b.board))
+  }
 
   implicit private def encodeBoard(b: ExtendedBoard): String = {
     b.board.tiles.##.toString
@@ -48,10 +65,12 @@ object AStar {
   val possibleMoves = List('MoveUp, 'MoveDown, 'MoveLeft, 'MoveRight, 'Wait)
 
   def evaluateBestSolution(sb: Board) = {
+    extractLiftPosition(sb)
+
     val visitedStates = MutableMap[String, (List[Opcode], ExtendedBoard)]()
     val pq = PriorityQueue[(String, Int)]()
     val boardEvaluations = MutableMap[String, Int]()
-    val b = ExtendedBoard(sb)
+    val b = extendFromBoard(sb)
     var bestSoFar = List[Opcode]()
     var bestScore = 0
     pq += ((b, evaluateState(bestSoFar, b)))
@@ -79,7 +98,7 @@ object AStar {
           }
 
           neb match {
-            case ExtendedBoard(rb) if rb.status == Playing() | rb.status == Win() => {
+            case ExtendedBoard(rb, _) if rb.status == Playing() | rb.status == Win() => {
               boardEvaluations.get(neb) match {
                 case Some(d) if d > cd => {
                   visitedStates(neb) = (m :: ops) -> neb

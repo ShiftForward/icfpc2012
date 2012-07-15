@@ -1,24 +1,13 @@
+import Opcode._
+
 object Agent {
-  import Opcode._
+  def getMoves(b: Board) = {
+    val moves = AStar.evaluateBestSolution(b)
 
-  def orderedDestinations(c: Coordinate, destinations: List[Coordinate]) = {
-    destinations.sortBy { coordinate => coordinate.distance(c) }
-  }
-
-  def visitNodes(nodes: List[Coordinate], board: Board): List[Opcode] = {
-    if (nodes.isEmpty)
-      List()
-    else {
-      val ops = ShortestPathCalculator.shortestPath(nodes.head, board)
-      if (ops.length > 0) {
-        println("Got from " + board.robotPos + " to " + nodes.head)
-        val nextBoard = board.eval(ops)
-        ops ++ visitNodes(orderedDestinations(nextBoard.robotPos, nodes.tail),
-                          nextBoard)
-      } else {
-        println("Unable to get from " + board.robotPos + " to " + nodes.head)
-        visitNodes(nodes.tail, board)
-      }
-    }
+    val resultingBoard = moves.foldLeft(b) { (board, move) => board.eval(move) }
+    if (resultingBoard.lambdas != resultingBoard.tLambdas)
+      moves ++ List('Abort)
+    else
+      moves
   }
 }

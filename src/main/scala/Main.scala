@@ -30,7 +30,7 @@ object Main extends App {
   // val b = Board("#L#\n#*#\n#*#\n# #\n# #\n#R#\n#\\#\n###".split('\n'))
   // val b = Board("# #\n#L#\n#\\#\n#R#\n###".split('\n'))
   //val b = Board.create("#  #\n#  #\n#  #\n#R #\n# *#\n# *#".split('\n'), (-1, 2, 1))
-  val b = Board("src/main/resources/map/contest1.map")
+  val b = Board("src/main/resources/map/contest8.map")
 
   println(b)
 
@@ -38,7 +38,7 @@ object Main extends App {
   val abortList = List('Abort)
 
   time {
-    moves = AStar.evaluateBestSolution(b)
+    moves = Agent.getMoves(b)
     implicit val opCode = 'Wait
   }
 
