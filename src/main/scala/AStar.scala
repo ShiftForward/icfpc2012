@@ -39,7 +39,13 @@ object AStar {
   }
 
   private def evaluateScore(b: ExtendedBoard) = {
-    b.board.lambdas
+    var score = b.board.lambdas * 25
+    if (b.board.status == Win())
+      score += b.board.lambdas * 50
+    else
+      0
+    score -= b.board.tick
+    score
   }
 
   private def extendFromBoard(b: Board) = {
@@ -47,7 +53,8 @@ object AStar {
   }
 
   private def nextExtendedBoard(b: ExtendedBoard, o: Opcode) = {
-    ExtendedBoard(b.board.eval(o),
+    val nb = b.board.eval(o)
+    ExtendedBoard(nb,
                   if (!b.pathToLift.isEmpty && ShortestPathCalculator.isClear(b.pathToLift, b.board))
                     ShortestPathCalculator.bfs(b.board.robotPos, b.pathToLift.head, b.board) ++ b.pathToLift.tail
                   else
@@ -75,7 +82,7 @@ object AStar {
     val boardEvaluations = MutableMap[String, Int]()
     val b = extendFromBoard(sb)
     var bestSoFar = List[Opcode]()
-    var bestScore = 0
+    var bestScore = evaluateScore(b)
     pq += ((b, evaluateState(bestSoFar, b)))
     visitedStates(b) = (bestSoFar -> b)
     boardEvaluations(b) = evaluateState(bestSoFar, b)
@@ -95,9 +102,10 @@ object AStar {
           val neb = nextExtendedBoard(b, m)
           val cd = evaluateState(m :: ops, neb)
 
-          if (evaluateScore(neb) < bestScore) {
+          if (evaluateScore(neb) > bestScore) {
             bestSoFar = m :: ops
             bestScore = evaluateScore(neb)
+            println("Best so far (" + bestScore + ") = " + Opcode.toString(bestSoFar))
           }
 
           neb match {
