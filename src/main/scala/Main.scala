@@ -18,13 +18,19 @@ object Main extends App {
     println("Received SIGINT! 10 more seconds to go.")
   }
 
-  // val b = Board("#*. #\n# R\\#\n#####".split('\n'))
+  val b = Board.create(("#R    #\n" +
+                        "#     #\n" +
+                        "#     #\n" +
+                        "#  W  #\n" +
+                        "#     #\n" +
+                        "#     #").split('\n'))
+
   // val b = Board("#R\\ #\n#* *#\n#* *#\n#####".split('\n'))
   // val b = Board("#L#\n#*#\n#*#\n# #\n# #\n#R#\n#\\#\n###".split('\n'))
   // val b = Board("#L#\n#*#\n#*#\n# #\n# #\n#R#\n#\\#\n###".split('\n'))
   // val b = Board("# #\n#L#\n#\\#\n#R#\n###".split('\n'))
   //val b = Board.create("#  #\n#  #\n#  #\n#R #\n# *#\n# *#".split('\n'), (-1, 2, 1))
-  val b = Board("src/main/resources/map/contest2.map")
+  // val b = Board("src/main/resources/map/contest2.map")
   println(b)
 
   val lambdas = b.allLambdas
@@ -32,9 +38,11 @@ object Main extends App {
   val abortList = List('Abort)
 
   time {
-    moves = AStar.evaluateBestSolution(b)
-    println(moves)
+    /* moves = AStar.evaluateBestSolution(b) */
+    implicit val opCode = 'Wait
+
+    println(b.eval.eval.eval.eval('Razor))
   }
 
-  println (Opcode.toString(moves))
+  // println (Opcode.toString(moves))
 }

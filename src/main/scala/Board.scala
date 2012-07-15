@@ -28,6 +28,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
       case 'Lambda              => '\\'
       case 'Earth               => '.'
       case 'Empty               => ' '
+      case 'Beard               => 'W'
       case 'ClosedLift          => 'L'
       case 'OpenLift            => 'O'
       case 'Rock | 'FallingRock => '*'
@@ -76,19 +77,14 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     lo.foldLeft(this) { (b, o) => b.eval(o) }
   }
 
-  def considerRazor(b: Board)(implicit o: Opcode): Board = {
-    if (o == 'Razor) b.copy(tiles = b.tiles ++ b.robotPos.neighbours.map { pos => val x = b.get(pos); (pos -> (if (x == 'Beard) 'Empty else x)) }.toMap)
-    else b
-  }
-
   def eval(implicit o: Opcode): Board = {
     import Board._
 
     val keys = Board.sortedKeys(this.width, this.height)
 
     val newBoardA = applyPatterns(this,      tier1, keys filter { pos => this.get(pos) == 'Robot })
-    val newBoardB = applyPatterns(newBoardA, tier2, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift})
-    val newBoardC = applyPatterns(considerRazor(newBoardB), tier3, keys filter { pos => newBoardB.get(pos) == 'Robot })
+    val newBoardB = applyPatterns(newBoardA, tier2, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift || o == 'Beard})
+    val newBoardC = applyPatterns(newBoardB, tier3, keys filter { pos => newBoardB.get(pos) == 'Robot })
 
     val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
     val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
@@ -193,9 +189,30 @@ object Board {
                           Map((0, 0) -> 'Robot, (0, 1) -> 'Lambda),
                           Map((0, 0) -> 'Empty, (0, 1) -> 'Robot), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(0, 1)) } )
 
+  val BeardGrowthN  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 0, -1) -> 'Empty), Map(( 0, -1) -> 'Beard))
+  val BeardGrowthNE = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 1, -1) -> 'Empty), Map(( 1, -1) -> 'Beard))
+  val BeardGrowthE  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 1,  0) -> 'Empty), Map(( 1,  0) -> 'Beard))
+  val BeardGrowthSE = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 1,  1) -> 'Empty), Map(( 1,  1) -> 'Beard))
+  val BeardGrowthS  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 0,  1) -> 'Empty), Map(( 0,  1) -> 'Beard))
+  val BeardGrowthSW = Pattern((b, _) => true, Map((0, 0) -> 'Beard, (-1, -1) -> 'Empty), Map((-1, -1) -> 'Beard))
+  val BeardGrowthW  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, (-1,  0) -> 'Empty), Map((-1,  0) -> 'Beard))
+  val BeardGrowthNW = Pattern((b, _) => true, Map((0, 0) -> 'Beard, (-1,  1) -> 'Empty), Map((-1,  1) -> 'Beard))
+
+  val RazorBlowN  = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 0, -1) -> 'Beard), Map(( 0, -1) -> 'Empty))
+  val RazorBlowNE = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 1, -1) -> 'Beard), Map(( 1, -1) -> 'Empty))
+  val RazorBlowE  = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 1,  0) -> 'Beard), Map(( 1,  0) -> 'Empty))
+  val RazorBlowSE = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 1,  1) -> 'Beard), Map(( 1,  1) -> 'Empty))
+  val RazorBlowS  = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 0,  1) -> 'Beard), Map(( 0,  1) -> 'Empty))
+  val RazorBlowSW = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1, -1) -> 'Beard), Map((-1, -1) -> 'Empty))
+  val RazorBlowW  = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1,  0) -> 'Beard), Map((-1,  0) -> 'Empty))
+  val RazorBlowNW = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1,  1) -> 'Beard), Map((-1,  1) -> 'Empty))
+  
   val tier1 = List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat)
-  val tier2 = List(Fall, FallRight, FallLeft, FallRightR, openGate)
-  val tier3 = List(Die, DieOutrun)
+
+  val tier2 = List(Fall, FallRight, FallLeft, FallRightR, openGate,
+                   BeardGrowthN, BeardGrowthNE, BeardGrowthE, BeardGrowthSE, BeardGrowthS, BeardGrowthSW, BeardGrowthW, BeardGrowthNW)
+
+  val tier3 = List(RazorBlowN, RazorBlowNE, RazorBlowE, RazorBlowSE, RazorBlowS, RazorBlowSW, RazorBlowW, RazorBlowNW, Die, DieOutrun)
 
   type Metadata = (Int, Int, Int)
 

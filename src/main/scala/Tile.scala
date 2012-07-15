@@ -19,6 +19,7 @@ object Tile {
       case 'O'  => 'OpenLift
       case '.'  => 'Earth
       case ' '  => 'Empty
+      case 'W'  => 'Beard
     }
   }
 }
