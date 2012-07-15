@@ -4,17 +4,19 @@ import scala.collection.immutable.TreeMap
 import Coordinate.Implicits._
 import Opcode._
 
-object AStar {
-  private def evaluateState(ops: List[Opcode], b: Board) = {
-    var evaluation = ops.size - b.lambdas * 25
+case class ExtendedBoard(board: Board)
 
-    if (b.status == Win()) {
-      evaluation -= b.lambdas * 50
-    } else if (b.tLambdas == b.lambdas) {
-      evaluation += b.liftPosition.manhattanDistance(b.robotPos)
+object AStar {
+  private def evaluateState(ops: List[Opcode], b: ExtendedBoard) = {
+    var evaluation = ops.size - b.board.lambdas * 25
+
+    if (b.board.status == Win()) {
+      evaluation -= b.board.lambdas * 50
+    } else if (b.board.tLambdas == b.board.lambdas) {
+      evaluation += b.board.liftPosition.manhattanDistance(b.board.robotPos)
     } else {
-      evaluation += b.allLambdas.foldLeft(b.width + b.height) { (minval, coordinate) =>
-        val dist = coordinate.manhattanDistance(b.robotPos)
+      evaluation += b.board.allLambdas.foldLeft(b.board.width + b.board.height) { (minval, coordinate) =>
+        val dist = coordinate.manhattanDistance(b.board.robotPos)
         if (dist < minval)
           dist
         else
@@ -25,12 +27,15 @@ object AStar {
     evaluation
   }
 
-  private def evaluateScore(b: Board) = {
-    b.lambdas
+  private def evaluateScore(b: ExtendedBoard) = {
+    b.board.lambdas
   }
 
-  implicit private def encodeBoard(b: Board): String = {
-    b.tiles.##.toString
+  private def nextExtendedBoard(b: ExtendedBoard, o: Opcode) =
+    ExtendedBoard(b.board.eval(o))
+
+  implicit private def encodeBoard(b: ExtendedBoard): String = {
+    b.board.tiles.##.toString
   }
 
   private implicit def StateOrdering =
@@ -42,10 +47,11 @@ object AStar {
 
   val possibleMoves = List('MoveUp, 'MoveDown, 'MoveLeft, 'MoveRight, 'Wait)
 
-  def evaluateBestSolution(b: Board) = {
-    val visitedStates = MutableMap[String, (List[Opcode], Board)]()
+  def evaluateBestSolution(sb: Board) = {
+    val visitedStates = MutableMap[String, (List[Opcode], ExtendedBoard)]()
     val pq = PriorityQueue[(String, Int)]()
     val boardEvaluations = MutableMap[String, Int]()
+    val b = ExtendedBoard(sb)
     var bestSoFar = List[Opcode]()
     var bestScore = 0
     pq += ((b, evaluateState(bestSoFar, b)))
@@ -54,7 +60,9 @@ object AStar {
 
     val startTime = System.nanoTime()
 
-    while (!pq.isEmpty && visitedStates(pq.head._1)._2.status != Win() && (System.nanoTime() - startTime) / 1000000 < 100000) {
+    while (!pq.isEmpty &&
+           visitedStates(pq.head._1)._2.board.status != Win() &&
+           (System.nanoTime() - startTime) / 1000000 < 100000) {
       val t = pq.dequeue()
       val c = t._1
       val (ops, b) = visitedStates(c)
@@ -62,26 +70,26 @@ object AStar {
 
       if (dd == t._2) {
         possibleMoves.foreach { m =>
-          val rb = b.eval(m)
-          val cd = evaluateState(m :: ops, rb)
+          val neb = nextExtendedBoard(b, m)
+          val cd = evaluateState(m :: ops, neb)
 
-          if (evaluateScore(rb) < bestScore) {
+          if (evaluateScore(neb) < bestScore) {
             bestSoFar = m :: ops
-            bestScore = evaluateScore(rb)
+            bestScore = evaluateScore(neb)
           }
 
-          rb match {
-            case rb: Board if rb.status == Playing() | rb.status == Win() => {
-              boardEvaluations.get(rb) match {
+          neb match {
+            case ExtendedBoard(rb) if rb.status == Playing() | rb.status == Win() => {
+              boardEvaluations.get(neb) match {
                 case Some(d) if d > cd => {
-                  visitedStates(rb) = (m :: ops) -> rb
-                  boardEvaluations(rb) = cd
-                  pq += ((rb, cd))
+                  visitedStates(neb) = (m :: ops) -> neb
+                  boardEvaluations(neb) = cd
+                  pq += ((neb, cd))
                 }
                 case None => {
-                  visitedStates(rb) = (m :: ops) -> rb
-                  boardEvaluations(rb) = cd
-                  pq += ((rb, cd))
+                  visitedStates(neb) = (m :: ops) -> neb
+                  boardEvaluations(neb) = cd
+                  pq += ((neb, cd))
                 }
                 case _ => // do nothing
               }
