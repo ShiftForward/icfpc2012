@@ -1,14 +1,14 @@
 object Opcode {
   type Opcode = Symbol
-  def <~~(a: Opcode, b: Opcode): Boolean = (b == 'Opcode) || (a == b)
-  def toString(moves: List[Opcode]) = (moves map {
-    _ match {
-      case 'MoveLeft => "L"
+  def <~~(a: Opcode, b: Opcode): Boolean = (b == a) || (b == 'Opcode)
+  def toString(moves: List[Opcode]) = (moves map { _ match {
+      case 'MoveLeft  => "L"
       case 'MoveRight => "R"
-      case 'MoveUp => "U"
-      case 'MoveDown => "D"
-      case 'Wait => "W"
-      case 'Abort => "A"
+      case 'MoveUp    => "U"
+      case 'MoveDown  => "D"
+      case 'Wait      => "W"
+      case 'Abort     => "A"
+      case 'Razor     => "S"
     }
   }).mkString
 }

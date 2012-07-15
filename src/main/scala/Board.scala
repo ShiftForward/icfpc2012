@@ -19,24 +19,20 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
   @inline def isUnderwater = (height - robotPos.y - 1) <= water
 
   override def toString = {
-    val lines = TreeMap(tiles.toArray: _*).groupBy { case (pos, _) => pos.y }
+    val lines = TreeMap(tiles.toArray: _*).groupBy(_._1.y)
     val sortedLines = TreeMap(lines.toArray: _*)
 
-    sortedLines.map { case (n, line) =>
-      line.map { case (_, tile) =>
-        tile match {
-          case 'Robot => 'R'
-          case 'Wall => '#'
-          case 'Lambda => '\\'
-          case 'Earth => '.'
-          case 'Empty => ' '
-          case 'ClosedLift => 'L'
-          case 'OpenLift => 'O'
-          case 'Rock | 'FallingRock => '*'
-          case _ => '?'
-        }
-      }.mkString
-    }.mkString("\n")
+    sortedLines.map { _._2.map { _._2 match {
+      case 'Robot               => 'R'
+      case 'Wall                => '#'
+      case 'Lambda              => '\\'
+      case 'Earth               => '.'
+      case 'Empty               => ' '
+      case 'ClosedLift          => 'L'
+      case 'OpenLift            => 'O'
+      case 'Rock | 'FallingRock => '*'
+      case _                    => '?'
+    } }.mkString }.mkString("\n")
   }
 
   def printStatus() {
@@ -68,8 +64,8 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
 
   def getClosest(t: Tile): List[Coordinate] = getClosest(robotPos, t)
 
-  def applyPatterns(b: Board, opCode: Opcode, patterns: List[Pattern], keys: IndexedSeq[Coordinate]): Board = {
-    val ps = patterns.filter(_.pred(b, opCode))
+  def applyPatterns(b: Board, patterns: List[Pattern], keys: IndexedSeq[Coordinate])(implicit o: Opcode): Board = {
+    val ps = patterns.filter(_.pred(b, o))
     val ts = keys flatMap { pos => ps collect { case p if (p.isMatch(b, pos)) => (p.replace(b, pos), p.f) } }
 
     val newBoard = b.copy(tiles = ts.foldLeft(b.tiles)((acc, t) => acc ++ t._1))
@@ -80,14 +76,19 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     lo.foldLeft(this) { (b, o) => b.eval(o) }
   }
 
-  def eval(o: Opcode): Board = {
+  def considerRazor(b: Board)(implicit o: Opcode): Board = {
+    if (o == 'Razor) b.copy(tiles = b.tiles ++ b.robotPos.neighbours.map { pos => val x = b.get(pos); (pos -> (if (x == 'Beard) 'Empty else x)) }.toMap)
+    else b
+  }
+
+  def eval(implicit o: Opcode): Board = {
     import Board._
 
     val keys = Board.sortedKeys(this.width, this.height)
 
-    val newBoardA = applyPatterns(this,      o, tier1, keys filter { pos => this.get(pos) == 'Robot })
-    val newBoardB = applyPatterns(newBoardA, o, tier2, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift})
-    val newBoardC = applyPatterns(newBoardB, o, tier3, keys filter { pos => newBoardB.get(pos) == 'Robot })
+    val newBoardA = applyPatterns(this,      tier1, keys filter { pos => this.get(pos) == 'Robot })
+    val newBoardB = applyPatterns(newBoardA, tier2, keys filter { pos => val o = newBoardA.get(pos); o == 'Rock || o == 'FallingRock || o == 'ClosedLift})
+    val newBoardC = applyPatterns(considerRazor(newBoardB), tier3, keys filter { pos => newBoardB.get(pos) == 'Robot })
 
     val newWater = if (flooding != 0 && tick % flooding == 0) newBoardC.water + 1 else newBoardC.water
     val newTicksUnderwater = if (newBoardC.isUnderwater) newBoardC.ticksUnderwater + 1 else 0
