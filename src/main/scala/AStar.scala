@@ -6,11 +6,27 @@ import Opcode._
 
 object AStar {
   def evaluateState(ops: List[Opcode], b: Board) = {
-    ops.size + (b.tLambdas - b.lambdas)
+    var evaluation = ops.size - b.lambdas * 25
+
+    if (b.status == Win()) {
+      evaluation -= b.lambdas * 50
+    } else if (b.tLambdas == b.lambdas) {
+      evaluation += b.liftPosition.manhattanDistance(b.robotPos)
+    } else {
+      evaluation += b.allLambdas.foldLeft(b.width + b.height) { (minval, coordinate) =>
+        val dist = coordinate.manhattanDistance(b.robotPos)
+        if (dist < minval)
+          dist
+        else
+          minval
+      }
+    }
+
+    evaluation
   }
 
   implicit private def encodeBoard(b: Board): String = {
-    b.##.toString
+    b.tiles.##.toString
   }
 
   private implicit def StateOrdering =
@@ -26,11 +42,15 @@ object AStar {
     val visitedStates = MutableMap[String, (List[Opcode], Board)]()
     val pq = PriorityQueue[(String, Int)]()
     val boardEvaluations = MutableMap[String, Int]()
-    pq += ((b, evaluateState(List(), b)))
-    visitedStates(b) = (List() -> b)
-    boardEvaluations(b) = evaluateState(List(), b)
+    var bestSoFar = List[Opcode]()
+    var bestScore = evaluateState(bestSoFar, b)
+    pq += ((b, bestScore))
+    visitedStates(b) = (bestSoFar -> b)
+    boardEvaluations(b) = bestScore
 
-    while (!pq.isEmpty && visitedStates(pq.head._1)._2.status != Win()) {
+    val startTime = System.nanoTime()
+
+    while (!pq.isEmpty && visitedStates(pq.head._1)._2.status != Win() && (System.nanoTime() - startTime) / 1000000 < 100000) {
       val t = pq.dequeue()
       val c = t._1
       val (ops, b) = visitedStates(c)
@@ -40,6 +60,11 @@ object AStar {
         possibleMoves.foreach { m =>
           val rb = b.eval(m)
           val cd = evaluateState(m :: ops, rb)
+
+          if (cd < bestScore) {
+            bestSoFar = m :: ops
+            bestScore = cd
+          }
 
           rb match {
             case rb: Board if rb.status == Playing() | rb.status == Win() => {
@@ -64,7 +89,7 @@ object AStar {
     }
 
     if (pq.isEmpty)
-      List()
+      bestSoFar
     else
       visitedStates.get(pq.head._1) match {
         case Some((ops, _)) => ops.reverse
