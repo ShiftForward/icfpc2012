@@ -16,9 +16,9 @@ object AStar {
   }
 
   private val points = Map(
-    'Lambda -> 25,
-    'ClosedLift -> 50,
-    'OpenLift -> 50)
+    'Lambda -> 250,
+    'ClosedLift -> 500,
+    'OpenLift -> 500)
 
   private def evaluateOpcodeList(ops: List[Opcode]) = {
     ops.size
@@ -114,9 +114,10 @@ object AStar {
     val boardEvaluations = MutableMap[String, Int]()
     var bestSoFar = List[Opcode]()
     var bestScore = evaluateScore(b)
-    pq += ((b, evaluateState(bestSoFar, b)))
+    var bestEvaluation = evaluateState(bestSoFar, b)
+    pq += ((b, bestEvaluation))
     visitedStates(b) = (bestSoFar -> b)
-    boardEvaluations(b) = evaluateState(bestSoFar, b)
+    boardEvaluations(b) = bestEvaluation
 
     val startTime = System.nanoTime()
 
@@ -133,9 +134,10 @@ object AStar {
           val neb = b.eval(m)
           val cd = evaluateState(m :: ops, neb)
 
-          if (evaluateScore(neb) > bestScore) {
+          val score = evaluateScore(neb)
+          if (score > bestScore) {
             bestSoFar = m :: ops
-            bestScore = evaluateScore(neb)
+            bestScore = score
             println("Best so far (" + bestScore + ") = " + Opcode.toString(bestSoFar))
           }
 
