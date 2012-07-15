@@ -22,40 +22,6 @@ object ShortestPathCalculator {
     }
   }
 
-  def bfs(s: Coordinate, e: Coordinate, b: Board): List[Coordinate] = {
-    val visited = Set[Coordinate]()
-    val q = Queue[List[Coordinate]]()
-    q.enqueue(List(s))
-    visited += s
-
-    while (!q.isEmpty && q.head.head != e) {
-      val path = q.dequeue()
-
-      possibleMoves.foreach { m =>
-        val nc = applyMove(path.head, m)
-        if (!visited.contains(nc) && (<~(b.get(nc), 'Reachable) ||
-                                      <~(b.get(nc), 'Lambda) ||
-                                      <~(b.get(nc), 'Lift))) {
-          visited += nc
-          q.enqueue(nc :: path)
-        }
-      }
-    }
-
-    if (q.isEmpty)
-      List()
-    else
-      q.head.reverse
-  }
-
-  def isClear(cs: List[Coordinate], b: Board) = {
-    cs.foldLeft(true) { (clear, c) =>
-      clear && (<~(b.get(c), 'Reachable) ||
-                <~(b.get(c), 'Lambda) ||
-                <~(b.get(c), 'Lift))
-    }
-  }
-
   implicit private def encodeBoard(b: Board): String = {
     b.robotPos.toString
   }
@@ -105,7 +71,10 @@ object ShortestPathCalculator {
   }
 
   private def cachePath(b: Board, e: Coordinate, ops: List[Opcode]) {
-    paths((b.robotPos, e)) = ops
+    ops.foldLeft((b, ops)) { case ((board, ops), op) =>
+      paths((board.robotPos, e)) = ops
+      (openLift(board.eval(op)), ops.tail)
+    }
   }
 
   def dijkstra(s: Coordinate, e: Coordinate, sb: Board): List[Opcode] = {
@@ -121,7 +90,6 @@ object ShortestPathCalculator {
       val t = pq.dequeue()
       val c = t._1
       val (ops, b) = visitedStates(c)
-      cachePath(sb, b.robotPos, ops)
 
       if (ops.size == t._2) {
         possibleMoves.foreach { m =>
@@ -148,14 +116,18 @@ object ShortestPathCalculator {
       }
     }
 
-    if (cachedPath(sb, e))
-      paths((sb.robotPos, e))
+    if (cachedPath(b, e))
+      paths((b.robotPos, e))
     else if (pq.isEmpty)
       List()
-    else
-      visitedStates.get(pq.head._1) match {
+    else {
+      val ops = visitedStates.get(pq.head._1) match {
         case Some((ops, _)) => ops.reverse
         case None => List()
       }
+
+      cachePath(b, b.robotPos, ops)
+      ops
+    }
   }
 }

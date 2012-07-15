@@ -108,7 +108,6 @@ object AStar {
     extractLiftPosition(b)
     extractAllLambdas(b)
     extractCoordinates(b)
-    var currentLambdas = 0
 
     val visitedStates = MutableMap[String, (List[Opcode], Board)]()
     val pq = PriorityQueue[(String, Int)]()
@@ -134,38 +133,36 @@ object AStar {
           val neb = b.eval(m)
           val cd = evaluateState(m :: ops, neb)
 
-          if (evaluateBoard(neb) <= evaluateBoard(b)) {
-            if (evaluateScore(neb) > bestScore) {
-              bestSoFar = m :: ops
-              bestScore = evaluateScore(neb)
-              println("Best so far (" + bestScore + ") = " + Opcode.toString(bestSoFar))
-            }
+          if (evaluateScore(neb) > bestScore) {
+            bestSoFar = m :: ops
+            bestScore = evaluateScore(neb)
+            println("Best so far (" + bestScore + ") = " + Opcode.toString(bestSoFar))
+          }
 
-            neb match {
-              case rb if rb.status == Playing() | rb.status == Win() => {
-                boardEvaluations.get(neb) match {
-                  case Some(d) if d > cd => {
-                    visitedStates(neb) = (m :: ops) -> neb
-                    boardEvaluations(neb) = cd
-                    pq += ((neb, cd))
-                  }
-                  case None => {
-                    visitedStates(neb) = (m :: ops) -> neb
-                    boardEvaluations(neb) = cd
-                    pq += ((neb, cd))
-                  }
-                  case _ => // do nothing
+          neb match {
+            case rb if rb.status == Playing() | rb.status == Win() => {
+              boardEvaluations.get(neb) match {
+                case Some(d) if d > cd => {
+                  visitedStates(neb) = (m :: ops) -> neb
+                  boardEvaluations(neb) = cd
+                  pq += ((neb, cd))
                 }
+                case None => {
+                  visitedStates(neb) = (m :: ops) -> neb
+                  boardEvaluations(neb) = cd
+                  pq += ((neb, cd))
+                }
+                case _ => // do nothing
               }
-              case _ => // do nothing
             }
+            case _ => // do nothing
           }
         }
       }
     }
 
     if (pq.isEmpty)
-      bestSoFar
+      bestSoFar.reverse
     else
       visitedStates.get(pq.head._1) match {
         case Some((ops, _)) => ops.reverse
