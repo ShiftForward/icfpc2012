@@ -5,7 +5,7 @@ import Coordinate.Implicits._
 import Opcode._
 
 object AStar {
-  def evaluateState(ops: List[Opcode], b: Board) = {
+  private def evaluateState(ops: List[Opcode], b: Board) = {
     var evaluation = ops.size - b.lambdas * 25
 
     if (b.status == Win()) {
@@ -23,6 +23,10 @@ object AStar {
     }
 
     evaluation
+  }
+
+  private def evaluateScore(b: Board) = {
+    b.lambdas
   }
 
   implicit private def encodeBoard(b: Board): String = {
@@ -43,10 +47,10 @@ object AStar {
     val pq = PriorityQueue[(String, Int)]()
     val boardEvaluations = MutableMap[String, Int]()
     var bestSoFar = List[Opcode]()
-    var bestScore = evaluateState(bestSoFar, b)
-    pq += ((b, bestScore))
+    var bestScore = 0
+    pq += ((b, evaluateState(bestSoFar, b)))
     visitedStates(b) = (bestSoFar -> b)
-    boardEvaluations(b) = bestScore
+    boardEvaluations(b) = evaluateState(bestSoFar, b)
 
     val startTime = System.nanoTime()
 
@@ -61,9 +65,9 @@ object AStar {
           val rb = b.eval(m)
           val cd = evaluateState(m :: ops, rb)
 
-          if (cd < bestScore) {
+          if (evaluateScore(rb) < bestScore) {
             bestSoFar = m :: ops
-            bestScore = cd
+            bestScore = evaluateScore(rb)
           }
 
           rb match {
