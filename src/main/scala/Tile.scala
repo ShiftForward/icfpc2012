@@ -4,9 +4,10 @@ object Tile {
   def <~(a: Tile, b: Tile): Boolean = {
     (a == b) ||
     (b == 'Tile) ||
-    (b == 'Reachable && (a == 'Earth      || a == 'Empty)) ||
-    (b == 'Lift      && (a == 'OpenLift   || a == 'ClosedLift)) ||
-    (b == 'Rock      && (a == 'StableRock || a == 'FallingRock))
+    (b == 'Reachable && (a == 'Earth        || a == 'Empty)) ||
+    (b == 'Lift      && (a == 'OpenLift     || a == 'ClosedLift)) ||
+    (b == 'Rock      && (a == 'StableRock   || a == 'FallingRock)) ||
+    (b == 'HORock    && (a == 'HOStableRock || a == 'HOFallingRock))
   }
 
   def apply(c: Char): Symbol = {

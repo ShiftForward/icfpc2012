@@ -1,5 +1,5 @@
 import scala.io.Source
-import collection.immutable.{TreeMap}
+import collection.immutable.TreeMap
 import Tile._
 import Opcode._
 import Coordinate.Implicits._
@@ -114,58 +114,59 @@ object Board {
     lastGen
   }
 
-  val openGate  = Pattern( { (b, _) => b.tLambdas == b.lambdas },
-                          Map((0, 0) -> 'ClosedLift),
-                          Map((0, 0) -> 'OpenLift))
+  // Push Rocks
+  val PushRight   = Pattern(OpcodePred('MoveRight),
+                          Map((0, 0) -> 'Robot, (1, 0) -> 'Rock,  (2, 0) -> 'Empty),
+                          Map((0, 0) -> 'Empty, (1, 0) -> 'Robot, (2, 0) -> 'Rock),      { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
 
-  val PushRight = Pattern(OpcodePred('MoveRight),
-                          Map((0, 0) -> 'Robot, (1, 0) -> 'Rock, (2, 0) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (1, 0) -> 'Robot, (2, 0) -> 'Rock), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
+  val PushRightHO = Pattern(OpcodePred('MoveRight),
+                          Map((0, 0) -> 'Robot, (1, 0) -> 'HORock, (2, 0) -> 'Empty),
+                          Map((0, 0) -> 'Empty, (1, 0) -> 'Robot,  (2, 0) -> 'HORock),   { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
 
-  val PushLeft  = Pattern(OpcodePred('MoveLeft),
-                          Map((-2, 0) -> 'Empty, (-1, 0) -> 'Rock, (0, 0) -> 'Robot),
-                          Map((-2, 0) -> 'Rock, (-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
+  val PushLeft    = Pattern(OpcodePred('MoveLeft),
+                          Map((-2, 0) -> 'Empty, (-1, 0) -> 'Rock,  (0, 0) -> 'Robot),
+                          Map((-2, 0) -> 'Rock,  (-1, 0) -> 'Robot, (0, 0) -> 'Empty),   { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
 
-  val Fall      = Pattern((_, _) => true,
-                          Map((0, 0) -> 'Rock,  (0, 1) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (0, 1) -> 'FallingRock))
+  val PushLeftHO  = Pattern(OpcodePred('MoveLeft),
+                          Map((-2, 0) -> 'Empty,  (-1, 0) -> 'HORock, (0, 0) -> 'Robot),
+                          Map((-2, 0) -> 'HORock, (-1, 0) -> 'Robot,  (0, 0) -> 'Empty), { s => s.copy(robotPos = s.robotPos + Coordinate(-1, 0)) } )
 
-  val FallRight = Pattern((_, _) => true,
-                          Map((0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Rock, (1, 1) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (1, 1) -> 'FallingRock))
+  // --- The Falling of a Rock
+  val Fall      = Pattern((_, _) => true, Map((0, 0) -> 'Rock,   (0, 1) -> 'Empty), Map((0, 0) -> 'Empty, (0, 1) -> 'FallingRock))
+  val FallHO    = Pattern((_, _) => true, Map((0, 0) -> 'HORock, (0, 1) -> 'Empty), Map((0, 0) -> 'Empty, (0, 1) -> 'HOFallingRock))
 
-  val FallLeft  = Pattern((_, _) => true,
-                          Map((-1, 0) -> 'Empty, (0, 0) -> 'Rock, (-1, 1) -> 'Empty, (0, 1) -> 'Rock),
-                          Map((0, 0) -> 'Empty, (-1, 1) -> 'FallingRock))
+  val FallRight  = Pattern((_, _) => true, Map(( 0, 0) -> 'Rock,  (1, 0) -> 'Empty, ( 0, 1) -> 'Rock,  (1, 1) -> 'Empty), Map((0, 0) -> 'Empty, ( 1, 1) -> 'FallingRock))
+  val FallLeft   = Pattern((_, _) => true, Map((-1, 0) -> 'Empty, (0, 0) -> 'Rock,  (-1, 1) -> 'Empty, (0, 1) -> 'Rock),  Map((0, 0) -> 'Empty, (-1, 1) -> 'FallingRock))
+  val FallRightR = Pattern((_, _) => true, Map(( 0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Lambda, (1, 1) -> 'Empty), Map((0, 0) -> 'Empty, ( 1, 1) -> 'FallingRock))
 
-  val FallRightR = Pattern((_, _) => true,
-                          Map((0, 0) -> 'Rock,  (1, 0) -> 'Empty, (0, 1) -> 'Lambda, (1, 1) -> 'Empty),
-                          Map((0, 0) -> 'Empty, (1, 1) -> 'FallingRock))
+  val FallRightHO  = Pattern((_, _) => true, Map(( 0, 0) -> 'HORock, (1, 0) -> 'Empty,  ( 0, 1) -> 'Rock,  (1, 1) -> 'Empty), Map((0, 0) -> 'Empty, ( 1, 1) -> 'HOFallingRock))
+  val FallLeftHO   = Pattern((_, _) => true, Map((-1, 0) -> 'Empty,  (0, 0) -> 'HORock, (-1, 1) -> 'Empty, (0, 1) -> 'Rock),  Map((0, 0) -> 'Empty, (-1, 1) -> 'HOFallingRock))
+  val FallRightRHO = Pattern((_, _) => true, Map(( 0, 0) -> 'HORock, (1, 0) -> 'Empty,  (0, 1) -> 'Lambda, (1, 1) -> 'Empty), Map((0, 0) -> 'Empty, ( 1, 1) -> 'HOFallingRock))
 
-  val StableW    = Pattern((_, _) => true,
-                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Wall),
-                          Map((0, 0) -> 'Rock, (0, 1) -> 'Wall))
+  // --- Stabilization of Rocks when falling
+  val StableW    = Pattern((_, _) => true, Map((0, 0) -> 'FallingRock,   (0, 1) -> 'Wall),       Map((0, 0) -> 'Rock))
+  val StableR    = Pattern((_, _) => true, Map((0, 0) -> 'FallingRock,   (0, 1) -> 'Rock),       Map((0, 0) -> 'Rock))
+  val StableL    = Pattern((_, _) => true, Map((0, 0) -> 'FallingRock,   (0, 1) -> 'Lambda),     Map((0, 0) -> 'Rock))
+  val StableOl   = Pattern((_, _) => true, Map((0, 0) -> 'FallingRock,   (0, 1) -> 'OpenLift),   Map((0, 0) -> 'Rock))
+  val StableCl   = Pattern((_, _) => true, Map((0, 0) -> 'FallingRock,   (0, 1) -> 'ClosedLift), Map((0, 0) -> 'Rock))
+  val StableE    = Pattern((_, _) => true, Map((0, 0) -> 'FallingRock,   (0, 1) -> 'Earth),      Map((0, 0) -> 'Rock))
+  val StableWHO  = Pattern((_, _) => true, Map((0, 0) -> 'HOFallingRock, (0, 1) -> 'Wall),       Map((0, 0) -> 'Lambda))
+  val StableRHO  = Pattern((_, _) => true, Map((0, 0) -> 'HOFallingRock, (0, 1) -> 'Rock),       Map((0, 0) -> 'Lambda))
+  val StableLHO  = Pattern((_, _) => true, Map((0, 0) -> 'HOFallingRock, (0, 1) -> 'Lambda),     Map((0, 0) -> 'Lambda))
+  val StableOlHO = Pattern((_, _) => true, Map((0, 0) -> 'HOFallingRock, (0, 1) -> 'OpenLift),   Map((0, 0) -> 'Lambda))
+  val StableClHO = Pattern((_, _) => true, Map((0, 0) -> 'HOFallingRock, (0, 1) -> 'ClosedLift), Map((0, 0) -> 'Lambda))
+  val StableEHO  = Pattern((_, _) => true, Map((0, 0) -> 'HOFallingRock, (0, 1) -> 'Earth),      Map((0, 0) -> 'Lambda))
 
-  val StableR    = Pattern((_, _) => true,
-                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Rock),
-                          Map((0, 0) -> 'Rock, (0, 1) -> 'Rock))
+  // --- Loosing Conditions
+  val Die         = Pattern((_, _) => true, Map((0, -1) -> 'FallingRock,   (0, 0) -> 'Robot), Map(), { s => s.copy(status = Lost()) })
+  val DieHO       = Pattern((_, _) => true, Map((0, -1) -> 'HOFallingRock, (0, 0) -> 'Robot), Map(), { s => s.copy(status = Lost()) })
+  val DieOutrun   = Pattern(OpcodePred('MoveDown), Map((0, -1) -> 'Rock,   (0, 0) -> 'Robot), Map(), { s => s.copy(status = Lost()) })
+  val DieOutrunHO = Pattern(OpcodePred('MoveDown), Map((0, -1) -> 'HORock, (0, 0) -> 'Robot), Map(), { s => s.copy(status = Lost()) })
 
-  val StableL    = Pattern((_, _) => true,
-                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Lambda),
-                          Map((0, 0) -> 'Rock, (0, 1) -> 'Lambda))
+  // --- Winning Conditions
+  val openGate  = Pattern( { (b, _) => b.tLambdas == b.lambdas }, Map((0, 0) -> 'ClosedLift), Map((0, 0) -> 'OpenLift))
 
-  val StableOl   = Pattern((_, _) => true,
-                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'OpenLift),
-                          Map((0, 0) -> 'Rock, (0, 1) -> 'OpenLift))
-
-  val StableCl   = Pattern((_, _) => true,
-                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'ClosedLift),
-                          Map((0, 0) -> 'Rock, (0, 1) -> 'ClosedLift))
-
-  val StableE    = Pattern((_, _) => true,
-                          Map((0, 0) -> 'FallingRock, (0, 1) -> 'Earth),
-                          Map((0, 0) -> 'Rock, (0, 1) -> 'Earth))
-
+  // --- Movements
   val MvRight    = Pattern(OpcodePred('MoveRight),
                           Map((0, 0) -> 'Robot, (1, 0) -> 'Reachable),
                           Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(robotPos = s.robotPos + Coordinate(1, 0)) } )
@@ -198,13 +199,6 @@ object Board {
                           Map((0, 0) -> 'Robot, (0, 1) -> 'OpenLift),
                           Map((0, 0) -> 'Empty, (0, 1) -> 'Robot), { s => s.copy(robotPos = s.robotPos + Coordinate(0, 1), status = Win()) } )
 
-  val Die       = Pattern((_, _) => true,
-                          Map((0, -1) -> 'FallingRock, (0, 0) -> 'Robot),
-                          Map(), { s => s.copy(status = Lost()) })
-
-  val DieOutrun = Pattern(OpcodePred('MoveDown),
-                          Map((0, -1) -> 'Rock, (0, 0) -> 'Robot),
-                          Map((0, -1) -> 'FallingRock, (0, 0) -> 'Robot), { s => s.copy(status = Lost()) })
 
   val MvRightEat = Pattern(OpcodePred('MoveRight),
                           Map((0, 0) -> 'Robot, (1, 0) -> 'Lambda),
@@ -241,17 +235,17 @@ object Board {
   val RazorBlowNW = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1,  1) -> 'Beard), Map((-1,  1) -> 'Empty))
 
   val tier1: List[(Pattern, Option[Pattern])] =
-    List(StableW, StableR, StableL, StableOl, StableCl, StableE)
+    List(StableW, StableR, StableL, StableOl, StableCl, StableE, StableWHO, StableRHO, StableLHO, StableOlHO, StableClHO, StableEHO)
 
   val tier2: List[(Pattern, Option[Pattern])] =
     List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat)
 
   val tier3: List[(Pattern, Option[Pattern])] =
-    List(Fall, (FallRight, Some(FallLeft)), FallRightR, openGate,
+    List(Fall, FallHO, (FallRight, Some(FallLeft)), (FallRightHO, Some(FallLeftHO)), FallRightR, FallRightRHO, openGate,
          BeardGrowthN, BeardGrowthNE, BeardGrowthE, BeardGrowthSE, BeardGrowthS, BeardGrowthSW, BeardGrowthW, BeardGrowthNW)
 
   val tier4: List[(Pattern, Option[Pattern])] =
-    List(RazorBlowN, RazorBlowNE, RazorBlowE, RazorBlowSE, RazorBlowS, RazorBlowSW, RazorBlowW, RazorBlowNW, Die, DieOutrun)
+    List(RazorBlowN, RazorBlowNE, RazorBlowE, RazorBlowSE, RazorBlowS, RazorBlowSW, RazorBlowW, RazorBlowNW, Die, DieOutrun, DieHO, DieOutrunHO)
 
   type Metadata = (Int, Int, Int)
 
