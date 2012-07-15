@@ -11,6 +11,18 @@ object Opcode {
       case 'Razor     => "S"
     }
   }).mkString
+
+  def apply(opcodes: String): List[Opcode] = {
+    opcodes.collect {
+      case 'L' => 'MoveLeft
+      case 'R' => 'MoveRight
+      case 'U' => 'MoveUp
+      case 'D' => 'MoveDown
+      case 'W' => 'Wait
+      case 'A' => 'Abort
+      case 'S' => 'Razor
+    }.toList
+  }
 }
 
 sealed trait Status
