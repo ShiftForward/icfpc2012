@@ -63,7 +63,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
     println(this.toString)
     println("Tick: " + tick)
     println("Caught: " + lambdas + "/" + tLambdas)
-    println("Diving: " + isUnderwater + (if (isUnderwater) "(for " + ticksUnderwater + "ticks" else ""))
+    println("Diving: " + isUnderwater + (if (isUnderwater) " (for " + ticksUnderwater + "ticks)" else ""))
     println("Waterproof: " + waterProof)
     println("Razors: " + nRazors)
     println("Beard growth: " + growth)
