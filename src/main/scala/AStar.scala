@@ -51,7 +51,12 @@ object AStar {
         val coords = FloodFiller.fill(b.robotPos, b)
         m += (coordinates -- coords).foldLeft(0) { (sum, coord) =>
           points.get(b.get(coord)) match {
-            case Some(tileValue) => sum + tileValue
+            case Some(tileValue) => {
+              if (ShortestPathCalculator.dijkstra(b.robotPos, coord, b).isEmpty)
+                sum + tileValue
+              else
+                sum
+            }
             case None => sum
           }
         }
