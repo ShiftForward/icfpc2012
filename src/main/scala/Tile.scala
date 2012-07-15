@@ -22,6 +22,7 @@ object Tile {
       case ' '  => 'Empty
       case 'W'  => 'Beard
       case '@'  => 'HORock
+      case '!'  => 'Razor
     }
   }
 }

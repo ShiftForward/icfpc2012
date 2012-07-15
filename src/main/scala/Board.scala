@@ -13,7 +13,8 @@ final case class Pattern(pred: (Board, Opcode) => Boolean, source: Map[(Int, Int
 }
 
 case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos: Coordinate, water: Int = -1, flooding: Int = 0,
-                 waterProof: Int = 10, tick: Int = 0, lambdas: Int = 0, status: Status = Playing(), tLambdas: Int = 0, ticksUnderwater: Int = 0) {
+                 waterProof: Int = 10, tick: Int = 0, lambdas: Int = 0, status: Status = Playing(), tLambdas: Int = 0,
+                 ticksUnderwater: Int = 0, nRazors: Int = 0, growth: Int = 25) {
 
   @inline def get(pos: Coordinate): Tile = tiles.get(pos).getOrElse('Invalid)
   @inline def isUnderwater = (height - robotPos.y - 1) <= water
@@ -33,6 +34,7 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
       case 'OpenLift                => 'O'
       case 'Rock | 'FallingRock     => '*'
       case 'HORock | 'HOFallingRock => '@'
+      case 'Razor                   => '!'
       case _                        => '?'
     } }.mkString }.mkString("\n")
   }
@@ -40,7 +42,6 @@ case class Board(width: Int, height: Int, tiles: Map[Coordinate, Tile], robotPos
   def printStatus() {
     println("-----------")
     println(this.toString)
-    println("["+tick+"] Caught " + lambdas + "/" + tLambdas + " lambdas, diving " + isUnderwater + " (" + water + ") for ("+ticksUnderwater+"), hence you('re) " + status)
     println("Tick: " + tick)
     println("Caught: " + lambdas + "/" + tLambdas)
     println("Diving: " + isUnderwater + (if (isUnderwater) "(for " + ticksUnderwater + "ticks" else ""))
@@ -216,14 +217,32 @@ object Board {
                           Map((0, 0) -> 'Robot, (0, 1) -> 'Lambda),
                           Map((0, 0) -> 'Empty, (0, 1) -> 'Robot), { s => s.copy(lambdas = s.lambdas + 1, robotPos = s.robotPos + Coordinate(0, 1)) } )
 
-  val BeardGrowthN  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 0, -1) -> 'Empty), Map(( 0, -1) -> 'Beard))
-  val BeardGrowthNE = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 1, -1) -> 'Empty), Map(( 1, -1) -> 'Beard))
-  val BeardGrowthE  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 1,  0) -> 'Empty), Map(( 1,  0) -> 'Beard))
-  val BeardGrowthSE = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 1,  1) -> 'Empty), Map(( 1,  1) -> 'Beard))
-  val BeardGrowthS  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, ( 0,  1) -> 'Empty), Map(( 0,  1) -> 'Beard))
-  val BeardGrowthSW = Pattern((b, _) => true, Map((0, 0) -> 'Beard, (-1, -1) -> 'Empty), Map((-1, -1) -> 'Beard))
-  val BeardGrowthW  = Pattern((b, _) => true, Map((0, 0) -> 'Beard, (-1,  0) -> 'Empty), Map((-1,  0) -> 'Beard))
-  val BeardGrowthNW = Pattern((b, _) => true, Map((0, 0) -> 'Beard, (-1,  1) -> 'Empty), Map((-1,  1) -> 'Beard))
+  val MvRightRazor = Pattern(OpcodePred('MoveRight),
+                          Map((0, 0) -> 'Robot, (1, 0) -> 'Razor),
+                          Map((0, 0) -> 'Empty, (1, 0) -> 'Robot), { s => s.copy(nRazors = s.nRazors + 1, robotPos = s.robotPos + Coordinate(1, 0)) } )
+
+  val MvLeftRazor  = Pattern(OpcodePred('MoveLeft),
+                          Map((-1, 0) -> 'Razor, (0, 0) -> 'Robot),
+                          Map((-1, 0) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(nRazors = s.nRazors + 1, robotPos = s.robotPos + Coordinate(-1, 0)) } )
+
+  val MvUpRazor      = Pattern(OpcodePred('MoveUp),
+                          Map((0, -1) -> 'Razor, (0, 0) -> 'Robot),
+                          Map((0, -1) -> 'Robot, (0, 0) -> 'Empty), { s => s.copy(nRazors = s.nRazors + 1, robotPos = s.robotPos + Coordinate(0, -1)) } )
+
+  val MvDownRazor    = Pattern(OpcodePred('MoveDown),
+                          Map((0, 0) -> 'Robot, (0, 1) -> 'Razor),
+                          Map((0, 0) -> 'Empty, (0, 1) -> 'Robot), { s => s.copy(nRazors = s.nRazors + 1, robotPos = s.robotPos + Coordinate(0, 1)) } )
+
+  val beardGrowthPred = (b: Board, _: Opcode) => (b.tick % b.growth == (b.growth -1))
+
+  val BeardGrowthN  = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, ( 0, -1) -> 'Empty), Map(( 0, -1) -> 'Beard))
+  val BeardGrowthNE = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, ( 1, -1) -> 'Empty), Map(( 1, -1) -> 'Beard))
+  val BeardGrowthE  = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, ( 1,  0) -> 'Empty), Map(( 1,  0) -> 'Beard))
+  val BeardGrowthSE = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, ( 1,  1) -> 'Empty), Map(( 1,  1) -> 'Beard))
+  val BeardGrowthS  = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, ( 0,  1) -> 'Empty), Map(( 0,  1) -> 'Beard))
+  val BeardGrowthSW = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, (-1, -1) -> 'Empty), Map((-1, -1) -> 'Beard))
+  val BeardGrowthW  = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, (-1,  0) -> 'Empty), Map((-1,  0) -> 'Beard))
+  val BeardGrowthNW = Pattern(beardGrowthPred, Map((0, 0) -> 'Beard, (-1,  1) -> 'Empty), Map((-1,  1) -> 'Beard))
 
   val RazorBlowN  = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 0, -1) -> 'Beard), Map(( 0, -1) -> 'Empty))
   val RazorBlowNE = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, ( 1, -1) -> 'Beard), Map(( 1, -1) -> 'Empty))
@@ -233,12 +252,13 @@ object Board {
   val RazorBlowSW = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1, -1) -> 'Beard), Map((-1, -1) -> 'Empty))
   val RazorBlowW  = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1,  0) -> 'Beard), Map((-1,  0) -> 'Empty))
   val RazorBlowNW = Pattern(OpcodePred('Razor), Map((0, 0) -> 'Robot, (-1,  1) -> 'Beard), Map((-1,  1) -> 'Empty))
+  val UseRazor    = Pattern(OpcodePred('Razor), Map(), Map(), { s => s.copy(nRazors = s.nRazors - 1) })
 
   val stabilization =
     List(StableW, StableR, StableL, StableOl, StableCl, StableE, StableWHO, StableRHO, StableLHO, StableOlHO, StableClHO, StableEHO)
 
   val moves =
-    List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat)
+    List(MvRight, MvLeft, MvUp, MvDown, PushRight, PushLeft, MvRightWin, MvLeftWin, MvUpWin, MvDownWin, MvRightEat, MvLeftEat, MvUpEat, MvDownEat, MvRightRazor, MvLeftRazor, MvUpRazor, MvDownRazor)
 
   val fallsAndBeards =
     List(Fall, FallHO, FallRight, FallRightHO, FallRightR, FallRightRHO, openGate,
@@ -247,7 +267,7 @@ object Board {
   val fallLefts = List(FallLeft, FallLeftHO)
 
   val razors =
-    List(RazorBlowN, RazorBlowNE, RazorBlowE, RazorBlowSE, RazorBlowS, RazorBlowSW, RazorBlowW, RazorBlowNW, Die, DieOutrun, DieHO, DieOutrunHO)
+    List(RazorBlowN, RazorBlowNE, RazorBlowE, RazorBlowSE, RazorBlowS, RazorBlowSW, RazorBlowW, RazorBlowNW, Die, DieOutrun, DieHO, DieOutrunHO, UseRazor)
 
   val patterns = List((stabilization, { (b: Board, pos: Coordinate) =>
                         val o = b.get(pos); o == 'FallingRock || o == 'HOFallingRock }),
@@ -264,13 +284,13 @@ object Board {
                       (razors, { (b: Board, pos: Coordinate) =>
                         b.get(pos) == 'Robot }))
 
-  type Metadata = (Int, Int, Int)
+  type Metadata = (Int, Int, Int, Int, Int)
 
-  def create(board: Seq[String], metadata: Metadata = (-1, 0, 10)): Board = {
+  def create(board: Seq[String], metadata: Metadata = (-1, 0, 10, 0, 25)): Board = {
     val width = board.maxBy(_.length).length
     val height = board.length
 
-    val (water, flooding, waterproof) = metadata
+    val (water, flooding, waterproof, razors, growth) = metadata
 
     val tiles = board.zipWithIndex.map { case (line, y) =>
       val paddedLine = line.padTo[Char, String](width, ' ')
@@ -283,7 +303,8 @@ object Board {
     val robotPos = tiles.find { _._2 == 'Robot }.map(_._1).get
     val nLambdas = tiles.count { tile => tile._2 == 'Lambda || tile._2 == 'HORock }
 
-    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = nLambdas)
+    new Board(width, height, tiles.toMap, robotPos, water, flooding, waterproof, tLambdas = nLambdas,
+              nRazors = razors, growth = growth)
   }
 
   def apply(filename: String): Board = {
@@ -297,17 +318,24 @@ object Board {
   }
 
   private def parse(input: Seq[String]): Board = {
-    val MetadataRegex = """Water (\d+)Flooding (\d+)Waterproof (\d+)""".r
+    var (water, flooding, waterproof, razors, growth) = (-1, 0, 10, 0, 25)
+    var board = Seq[String]()
 
-    try {
-      val (board, metadata) = input.splitAt(input.length - 3)
+    val Water = """Water (\d+)""".r
+    val Flooding = """Flooding (\d+)""".r
+    val WaterProof = """Waterproof (\d+)""".r
+    val Razors = """Razors (\d+)""".r
+    val Growth = """Growth (\d+)""".r
 
-      val MetadataRegex(water, flooding, waterproof) = metadata.mkString
+    input foreach { _ match {
+        case Water(w) => water = (w.toInt - 1)
+        case Flooding(f) => flooding = f.toInt
+        case WaterProof(wp) => waterproof = wp.toInt
+        case Razors(r) => razors = r.toInt
+        case Growth(g) => growth = g.toInt
+        case l: String => board = board :+ l
+    }}
 
-      create(board, (water.toInt - 1, flooding.toInt, waterproof.toInt))
-
-    } catch {
-      case e: MatchError => create(input)
-    }
+    create(board, (water, flooding, waterproof, razors, growth))
   }
 }
