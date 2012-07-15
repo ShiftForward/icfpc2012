@@ -5,10 +5,12 @@ import Coordinate.Implicits._
 import Tile._
 import Opcode._
 
-case class ExtendedBoard(board: Board, pathToLift: List[Coordinate])
+case class ExtendedBoard(board: Board)
 
 object AStar {
   var liftPosition: Coordinate = _
+  val neighborHorizontal = List(Coordinate(1, 0), Coordinate(-1, 0))
+  val neighborVertical = List(Coordinate(0, 1), Coordinate(0, -1))
 
   private def evaluateState(ops: List[Opcode], b: ExtendedBoard) = {
     var evaluation = ops.size - b.board.lambdas * 25
@@ -25,10 +27,6 @@ object AStar {
         else
           minval
       }
-    }
-
-    if (b.pathToLift.isEmpty) {
-      evaluation += 50 * b.board.tLambdas
     }
 
     evaluation
@@ -49,16 +47,12 @@ object AStar {
   }
 
   private def extendFromBoard(b: Board) = {
-    ExtendedBoard(b, ShortestPathCalculator.bfs(b.robotPos, liftPosition, b))
+    ExtendedBoard(b)
   }
 
   private def nextExtendedBoard(b: ExtendedBoard, o: Opcode) = {
     val nb = b.board.eval(o)
-    ExtendedBoard(nb,
-                  if (!b.pathToLift.isEmpty && ShortestPathCalculator.isClear(b.pathToLift, b.board))
-                    ShortestPathCalculator.bfs(b.board.robotPos, b.pathToLift.head, b.board) ++ b.pathToLift.tail
-                  else
-                    ShortestPathCalculator.bfs(b.board.robotPos, liftPosition, b.board))
+    ExtendedBoard(nb)
   }
 
   implicit private def encodeBoard(b: ExtendedBoard): String = {
@@ -109,7 +103,7 @@ object AStar {
           }
 
           neb match {
-            case ExtendedBoard(rb, _) if rb.status == Playing() | rb.status == Win() => {
+            case ExtendedBoard(rb) if rb.status == Playing() | rb.status == Win() => {
               boardEvaluations.get(neb) match {
                 case Some(d) if d > cd => {
                   visitedStates(neb) = (m :: ops) -> neb
