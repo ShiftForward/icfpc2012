@@ -19,16 +19,6 @@ object ShortestPathCalculator {
   implicit def opcodeListToTTL(ops: List[Opcode]): (TTL, List[Opcode]) = (defaultTTL, ops)
   implicit def ttlTupleToOpcode(t: (TTL, List[Opcode])) = t._2
 
-  private def applyMove(c: Coordinate, o: Opcode) = {
-    o match {
-      case 'MoveUp => c + Coordinate(0, -1)
-      case 'MoveDown => c + Coordinate(0, 1)
-      case 'MoveLeft => c + Coordinate(-1, 0)
-      case 'MoveRight => c + Coordinate(1, 0)
-      case _ => c
-    }
-  }
-
   implicit private def encodeBoard(b: Board): String = {
     b.robotPos.toString
   }
