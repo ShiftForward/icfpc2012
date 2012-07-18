@@ -21,7 +21,25 @@ object FloodFiller {
     ('Empty -> true),
     ('Beard -> false),
     ('HORock -> false),
-    ('Razor -> true))
+    ('Razor -> true),
+    ('TrampolineA -> true),
+    ('TrampolineB -> true),
+    ('TrampolineC -> true),
+    ('TrampolineD -> true),
+    ('TrampolineE -> true),
+    ('TrampolineF -> true),
+    ('TrampolineG -> true),
+    ('TrampolineH -> true),
+    ('TrampolineI -> true),
+    ('Target1 -> true),
+    ('Target2 -> true),
+    ('Target3 -> true),
+    ('Target4 -> true),
+    ('Target5 -> true),
+    ('Target6 -> true),
+    ('Target7 -> true),
+    ('Target8 -> true),
+    ('Target9 -> true))
 
   def fill(start: Coordinate, b: Board): Set[Coordinate] = {
     val visited = Set[Coordinate]()
