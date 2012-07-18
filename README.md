@@ -42,7 +42,6 @@ flood5.map: 571
 beard1.map: 437
 beard2.map: 4507
 beard4.map: 1460
-...
 ```
 
 ## Ok... so... why did you release the code?
