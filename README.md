@@ -52,4 +52,4 @@ There's a predicate to test if the pattern is applicable (based on the opcode an
 The pattern is composed of two matrices which are centered on the target Tile. The source matrix is used to match a pattern scenario on the board, and if it passes, the board is updated
 according to the transformation matrix. Additionally we can pass a function to capture additional side-effects on the Board (e.g. like changing the number of razors).
 
-This allowed us to quickly implement all the game rules as they were announced. It also allowed the solver to independently test all of the possible move patterns "blindly", which allowed the bot to "automatically" adapt to new movements as they were implemented on the simulator.
+This allowed us to quickly implement all the game rules as they were announced. It also allowed the solver to independently test all of the possible move patterns "blindly", which allowed the bot to automatically adapt to new movements as they were implemented on the simulator (of course the heuristic still had to be changed to take into account new rules).
