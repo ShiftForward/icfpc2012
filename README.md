@@ -35,5 +35,19 @@ Two reasons. First, the number of Scala entries are very low. Opening the code *
 
 The second reason is because we think the Pattern Matching algorithm we used in the simulator is cool. We know there are lots of ways to enhance it, including the design of an external DSL to capture the patterns more "graphically", and it's probably slower when compared to an in-place, mutable, switch-case based C implementation... but it's still cool :-)
 
-## Could you talk a little on your solving strategy?
+A pattern looks like this:
 
+```scala
+val MvUpRazor = Pattern(OpcodePred('MoveUp),
+                  Seq((0, -1) -> 'Razor, (0, 0) -> 'Robot),
+                  Seq((0, -1) -> 'Robot, (0, 0) -> 'Empty), 
+                  { s => s.copy(nRazors = s.nRazors + 1, robotPos = s.robotPos + Coordinate(0, -1)) } )
+```
+                  
+There's a predicate to test if the pattern is applicable (based on the opcode and board), in this case this pattern is only applicable when the 'MoveUp opcode is triggered. 
+The pattern is composed of two matrices which are centered on the target Tile. The source matrix is used to match a pattern scenario on the board, and if it passes, the board is updated
+according to the transformation matrix. Additionally we can pass a function to capture additional side-effects on the Board (e.g. like changing the number of razors).
+
+This allowed us to quickly implement all the game rules as they were announced. It also allowed the solver to independently test all of the possible move patterns "blindly", which allowed the bot to "automatically" adapt to new movements as they were implemented on the simulator.
+
+## Could you talk a little on your solving strategy?
