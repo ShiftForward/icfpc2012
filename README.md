@@ -35,6 +35,10 @@ Two reasons. First, the number of Scala entries are very low. Opening the code *
 
 The second reason is because we think the Pattern Matching algorithm we used in the simulator is cool. We know there are lots of ways to enhance it, including the design of an external DSL to capture the patterns more "graphically", and it's probably slower when compared to an in-place, mutable, switch-case based C implementation... but it's still cool :-)
 
+## Could you talk a little on your solving strategy?
+
+### Patterns
+
 A pattern looks like this:
 
 ```scala
@@ -49,5 +53,3 @@ The pattern is composed of two matrices which are centered on the target Tile. T
 according to the transformation matrix. Additionally we can pass a function to capture additional side-effects on the Board (e.g. like changing the number of razors).
 
 This allowed us to quickly implement all the game rules as they were announced. It also allowed the solver to independently test all of the possible move patterns "blindly", which allowed the bot to "automatically" adapt to new movements as they were implemented on the simulator.
-
-## Could you talk a little on your solving strategy?
