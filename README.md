@@ -72,3 +72,9 @@ This allowed us to quickly implement all the game rules as they were announced. 
 ### Solver
 
 We started by a greedy best-first approach, just trying to fetch the lambdas that were closer to the bot. This quickly revealed itself as a bad strategy, specially in tricky maps where either the lambdas or the lift would become unreachable (such as contest8.map). We then evolved into a generic A* that would try the available opcodes in each state. The state was identified by the hash code of the map tiles, in order to reduce space. Our heuristic was based on the map score, penalizing the number of moves and prioritizing the number of lambdas gathered. We would also benefit states where we were closer to a lambda or to the lift (in case all lambdas were gathered) and penalize states where either a lambda or the lift was unreachable. In order to check for reachability, we would perform a flood fill starting on the bot position. For every interesting element (lambda or lift) outside the fill area, we would attempt to compute a path from the bot's current position to the element. We would also keep a cache of paths (which, in the end, I didn't think it was correctly implemented). We spent a generous amount of time tweaking the heuristic, and didn't consider flooding, beards, trampolines or higher order rocks in it.
+
+### WTF is it with Tile and Opcode?!
+
+We started by representing tiles and opcodes as case classes which allowed for all the pattern matching goodness. Unfortunately it was slow(ish) and had an higher memory consumption, so the move to Symbol was a cheap performance optimization. Looking back on it, I forgot to try case objects instead...
+
+
