@@ -7,7 +7,7 @@
 
 ## What is this?
 
-This is Guru Meditation's entry to the ICFP 2012 Contest.
+This is Guru Meditation's entry to the [ICFP 2012 Contest](http://icfpcontest2012.wordpress.com/).
 
 ## Who are you?
 
